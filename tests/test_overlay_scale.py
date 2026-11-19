@@ -158,3 +158,22 @@ def test_reroll_keeps_bottom_badges(monkeypatch):
         assert green_rows() == before                 # 一直在原位，没有消失
     _wait(1500)
     assert green_rows() == before                     # 过一会儿也不跳
+
+
+def test_label_width_tracks_content_and_not_the_ocr_box():
+    from lolhex.ui.overlay import BadgeLayer
+    app = _app()
+    layer = BadgeLayer()
+    try:
+        snap = {"settings": {}, "offer": {"boxes": [[300, 420, 610, 466], [670, 420, 980, 466]]},
+                "evaluation": {"hero_id": "17", "slots": [
+                    {"index": 0, "verdict": "nodata"},
+                    {"index": 1, "verdict": "best", "basis": "hero_win", "win": .607, "score": 6.9}]}}
+        layer.update_from(snap, Rect(0, 0, 1920, 1080))
+        empty, best = layer._badge_layout(snap)
+        assert empty[4].width() < best[4].width() < 250
+        assert not empty[4].intersects(best[4])
+        assert "60.7%" in best[3][0] and "+6.9" in best[3][1]
+    finally:
+        layer.close()
+        app.processEvents()

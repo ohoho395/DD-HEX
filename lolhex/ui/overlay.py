@@ -35,9 +35,9 @@ from .hotkey import GameHotkey
 log = logging.getLogger(__name__)
 
 RARITY_CN = {"silver": "白银", "gold": "黄金", "prismatic": "棱彩"}
-VERDICT = {"best": ("首选", QColor(95, 211, 141)), "ok": ("可选", QColor(98, 168, 255)),
-           "reroll": ("可考虑刷新", QColor(255, 122, 107)), "unknown": ("未知", QColor(150, 150, 150)),
-           "nodata": ("无数据", QColor(150, 150, 150))}
+VERDICT = {"best": ("首选", QColor(95, 211, 141)), "ok": ("可选", QColor(214, 221, 226)),
+           "reroll": ("可刷新", QColor(220, 213, 197)), "unknown": ("未知", QColor(177, 183, 191)),
+           "nodata": ("无数据", QColor(177, 183, 191))}
 # 某张卡没认出的前几秒写「识别中」：多是三选一刚弹出、卡还在翻，字没读全，1–2 秒内就能认出（1.1.4）。
 # 过了这个时间还认不出（新卡、被挡住）才写「未知」
 READING_S = 2.0
@@ -283,9 +283,9 @@ class BadgeLayer(_Layer):
         # 下面都按「1080P 像素」算：标签大小跟着卡片走
         unit = _unit(self.target_h)
         ox, oy = self.origin.x(), self.origin.y()
-        f_big = QFont("Microsoft YaHei UI", 12, QFont.Bold)
-        f_small = QFont("Microsoft YaHei UI", 9)
-        fm_big, fm_small = QFontMetrics(f_big, self), QFontMetrics(f_small, self)
+        title_font, detail_font = self._badge_fonts()
+        title_metrics = QFontMetrics(title_font, self)
+        detail_metrics = QFontMetrics(detail_font, self)
         boxes = offer.get("boxes") or []
         known = [b for b in boxes if b]
         items = []
@@ -314,13 +314,12 @@ class BadgeLayer(_Layer):
                 label = NODATA_NOTE
             if r.get("thin") == "too_few":
                 label = "样本太少 · 建议刷新"
-            lines = []
-            if r.get("score") is not None:
-                s = f"{r['score']:+.1f}"
-                if show_win and recommend.win_text(r):
-                    s += " · " + recommend.win_text(r)
-                lines.append(s)
+            # First row pairs the verdict with the observed rate. Keep model
+            # scores without an observed win rate in the detailed panel.
+            rate = recommend.win_text(r) if show_win else ""
             meta = []
+            if r.get("basis") == "hero_win" and r.get("score") is not None:
+                meta.append(f"较基准 {r['score']:+.1f}")
             if r.get("rarity") and r.get("rank"):
                 metric = "胜率" if r.get("rank_basis") == "hero_rarity_win_rate" else ""
                 meta.append(f"{RARITY_CN.get(r['rarity'], '')}{metric}第{r['rank']}/{r.get('rank_total') or '?'}")
@@ -334,12 +333,22 @@ class BadgeLayer(_Layer):
                 meta.insert(0, "样本偏少")
             if not ev.get("hero_id"):  # 只在浮窗里写的话进游戏 5 秒就收起，玩家常常不知道是按全英雄算的
                 meta.insert(0, "未识别英雄 · 按全英雄数据")
-            if meta:
-                lines.append(" · ".join(meta))
-            # 标题框只是标题文字那么宽（还没校准时）：字长的（尊我为王那句）按字撑开，不让底框比字窄
-            w = max(170.0, x1 - x0, fm_big.horizontalAdvance(label) + 20,
-                    max((fm_small.horizontalAdvance(ln) for ln in lines), default=0) + 16)
-            h = 30 + 18 * len(lines)
+            head_w = title_metrics.horizontalAdvance(label)
+            # Long global-rate qualifications get a separate line to keep four
+            # adjacent choices distinct. All evidence lines use the same font.
+            inline_rate = rate if rate and " · " not in rate else ""
+            if rate and not inline_rate:
+                meta.insert(0, rate)
+            lines = [inline_rate]
+            for part in meta:
+                if len(lines) > 1 and detail_metrics.horizontalAdvance(lines[-1] + " · " + part) <= 214:
+                    lines[-1] += " · " + part
+                else:
+                    lines.append(part)
+            if inline_rate:
+                head_w += 14 + detail_metrics.horizontalAdvance(inline_rate)
+            w = max(head_w, max((detail_metrics.horizontalAdvance(t) for t in lines[1:]), default=0)) + 26
+            h = 30 + 20 * (len(lines) - 1)
             yc = ((box[1] + box[3]) / 2 - oy) / unit
             items.append((r, label, color, lines, cx, w, h, y0, yc))
         result = []
@@ -368,31 +377,46 @@ class BadgeLayer(_Layer):
         p = QPainter(self)
         p.setRenderHint(QPainter.Antialiasing)
         p.scale(unit / self._scale(), unit / self._scale())
-        f_big = QFont("Microsoft YaHei UI", 12, QFont.Bold)
-        f_small = QFont("Microsoft YaHei UI", 9)
-        fm_small = QFontMetrics(f_small, self)
+        title_font, detail_font = self._badge_fonts()
+        fm_small = QFontMetrics(detail_font, self)
         drawn = []
         for r, label, color, lines, rect, hr, cx, y0, yc in self._badge_layout(snap):
             drawn.append(rect)
-            p.setPen(Qt.NoPen)
-            p.setBrush(QColor(10, 12, 16, 215))
-            p.drawRoundedRect(rect, 6, 6)
-            p.setPen(QPen(color, 2 if r["verdict"] == "best" else 1))
-            p.setBrush(Qt.NoBrush)
-            p.drawRoundedRect(rect.adjusted(1, 1, -1, -1), 6, 6)
-            p.setFont(f_big)
+            best = r["verdict"] == "best"
+            p.setPen(QPen(QColor(193, 208, 218, 48), 1))
+            p.setBrush(QColor(15, 36, 32, 246) if best else QColor(20, 24, 31, 232))
+            p.drawRoundedRect(rect.adjusted(1, 1, -1, -1), 7, 7)
+            if best:
+                p.setPen(Qt.NoPen)
+                p.setBrush(color)
+                p.drawRoundedRect(QRectF(rect.x() + 4, rect.y() + 8, 3, rect.height() - 16), 1.5, 1.5)
+            head = QRect(rect.x() + 13, rect.y(), rect.width() - 26, 30)
+            p.setFont(title_font)
             p.setPen(color)
-            p.drawText(QRect(rect.x(), rect.y() + 4, rect.width(), 24), Qt.AlignHCenter, label)
-            p.setFont(f_small)
-            p.setPen(QColor(225, 228, 235))
-            for k, ln in enumerate(lines):
-                p.drawText(QRect(rect.x() + 4, rect.y() + 28 + 18 * k, rect.width() - 8, 18), Qt.AlignHCenter, ln)
+            p.drawText(head, Qt.AlignLeft | Qt.AlignVCenter, label)
+            p.setFont(detail_font)
+            if lines[0]:
+                p.setPen(QColor(238, 241, 239))
+                p.drawText(head, Qt.AlignRight | Qt.AlignVCenter, lines[0])
+            p.setPen(QColor(191, 200, 202))
+            for index, detail in enumerate(lines[1:]):
+                row = QRect(head.x(), rect.y() + 26 + 20 * index, head.width(), 20)
+                p.drawText(row, Qt.AlignLeft | Qt.AlignVCenter, detail)
             hint = r.get("item_hint")
             if hint:
                 self._paint_item_hint(p, hint, hr, fm_small, show_win)
                 drawn.append(hr)
         p.end()
         self._publish(drawn, unit)
+
+    @staticmethod
+    def _badge_fonts():
+        title = QFont("Microsoft YaHei UI")
+        title.setPixelSize(16)
+        title.setWeight(QFont.DemiBold)
+        detail = QFont("Microsoft YaHei UI")
+        detail.setPixelSize(13)
+        return title, detail
 
     @staticmethod
     def _item_hint_stat(row, hint, show_win):
@@ -417,12 +441,12 @@ class BadgeLayer(_Layer):
         fm = QFontMetrics(QFont("Microsoft YaHei UI", 9), self)
         rows = hint["items"][:3]
         if not rows:  # 没有够格的装备：说明照常显示，只在底部写一行
-            width = min(badge.width(), fm.horizontalAdvance(hint.get("note") or "") + 2 * HINT_PAD)
+            width = min(284, fm.horizontalAdvance(hint.get("note") or "") + 2 * HINT_PAD)
             return QRect(int(cx - width / 2), bottom - HINT_NOTE_H, width, HINT_NOTE_H)
         widest = max(fm.horizontalAdvance(hint_title(hint)), *(
             HINT_ICON + 6 + fm.horizontalAdvance(row["name"]) + 12 + fm.horizontalAdvance(self._item_hint_stat(row, hint, show_win))
             for row in rows))
-        width = min(badge.width(), widest + 2 * HINT_PAD)
+        width = min(284, widest + 2 * HINT_PAD)
         height = HINT_HEAD_H + HINT_ROW_H * len(rows) + 4
         top = int(y0 - 4 - height) if badge_below else max(title_bottom, bottom - height)
         return QRect(int(cx - width / 2), top, width, height)
