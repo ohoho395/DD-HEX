@@ -3,7 +3,7 @@
 发版时 GitHub Actions 把新版本的文件清单和"会变的文件"推到本仓库的 updates 分支：
     manifest.json        {"schema_version": 1, "version", "encoding": "gzip", "files": {相对路径: {sha256, size}},
                           "patchable": [相对路径]}
-    files/<相对路径>.gz   patchable 里的文件（AramHex.exe、_internal/base_library.zip、_internal/lolhex/**）的 gzip 压缩版。
+    files/<相对路径>.gz   patchable 里的文件（DD HEX.exe、_internal/base_library.zip、_internal/lolhex/**）的 gzip 压缩版。
                           jsDelivr 不给下 .exe（403），压缩后就可以；SHA-256 校验的是解压后的原文件。
     files/<相对路径>      原文件，给 1.0.3（只认原文件）从 GitHub 下载用
 下载顺序：云控配置的备用地址 → 官网 aramhex.com/u/<版本> → GitHub。1.1.7 起不再用 jsDelivr。
@@ -33,7 +33,7 @@ from urllib.parse import unquote
 
 import requests
 
-from . import GITHUB_REPO, cloud
+from . import GITHUB_REPO, cloud, distribution
 from .config import program_dir
 
 log = logging.getLogger(__name__)
@@ -46,21 +46,19 @@ def tag_for(version: str) -> str:
 
 
 def sources_for(version: str) -> list[str]:
-    from . import cloud
-    tag = tag_for(version)
-    extra = [u.replace("{version}", version).rstrip("/") for u in cloud.mirrors("update")]
-    site = [f"{s}/u/{version}" for s in cloud.sites()]  # 云控换了官网地址时新的在前，内置 aramhex.com/u 在最后
-    return (extra + site + [f"https://raw.githubusercontent.com/{GITHUB_REPO}/{tag}"]
-            # 分支地址兜底（1.0.3 发布时还没有 tag）；清单版本对不上会被跳过
-            + [f"https://raw.githubusercontent.com/{GITHUB_REPO}/{BRANCH}"])
+    repo = distribution.update_repo()
+    if not repo:
+        return []
+    return [f"https://raw.githubusercontent.com/{repo}/{tag_for(version)}",
+            f"https://raw.githubusercontent.com/{repo}/{BRANCH}"]
 
 
 SOURCES = sources_for("0")  # 只用作默认值的形状；实际按要更新到的版本取 sources_for(version)
 # 会随我们发版变化的文件；其余都是第三方库（Qt、OpenCV、识别模型……），变了就要完整安装包
-PATCHABLE_PREFIXES = ("AramHex.exe", "_internal/base_library.zip", "_internal/lolhex/")
+PATCHABLE_PREFIXES = ("DD HEX.exe", "_internal/base_library.zip", "_internal/lolhex/")
 STAGING, BACKUP = "_update_new", "_update_old"
 ROLLBACK_INCOMPLETE = "update-rollback-incomplete.txt"  # 有这个文件就说明旧文件没全部还原，_update_old 不能删
-UNINSTALL_KEY = r"Software\Microsoft\Windows\CurrentVersion\Uninstall\{1107079E-6C48-46FD-938D-04B1C3EA9A72}_is1"
+UNINSTALL_KEY = r"Software\Microsoft\Windows\CurrentVersion\Uninstall\{0763032E-8343-4ADC-8A9F-F1625DFA68B7}_is1"
 
 
 class NotWritable(Exception):
@@ -143,6 +141,7 @@ def fetch_manifest(version: str, sources=SOURCES, timeout: float = 15) -> tuple[
     """依次试每个地址，返回 (清单, 地址)。版本对不上（如 jsDelivr 缓存还是旧的）就换下一个。"""
     errors = []
     for base in sources:
+        distribution.reject_upstream_update(base)
         try:
             r = requests.get(f"{base}/manifest.json", headers=cloud.headers(base + "/"), timeout=timeout)
             r.raise_for_status()
@@ -199,6 +198,7 @@ def download(manifest: dict, changed: list[str], root: Path, sources=SOURCES, pr
             # 优先下压缩版（.gz）：jsDelivr 不给下 .exe，压缩后也更小；没有压缩版的旧清单下原文件
             suffixes = [".gz", ""] if gz else [""]
             for base in sources:
+                distribution.reject_upstream_update(base)
                 for suffix in suffixes:
                     got = [0]
 
@@ -345,7 +345,7 @@ def _powershell_fallback() -> str | None:
 def launch_apply(root: Path, changed: list[str], stale: list[str], version: str,
                  relaunch: str | None = None, pid: int | None = None, wait: bool = False) -> Path:
     """写出并启动替换脚本。调用后助手应当马上退出，让出文件。"""
-    script = Path(tempfile.gettempdir()) / f"aramhex-apply-{version}-{os.getpid()}.ps1"
+    script = Path(tempfile.gettempdir()) / f"ddhex-apply-{version}-{os.getpid()}.ps1"
     body = apply_script(root, changed, stale, pid or os.getpid(), version, relaunch)
     script.write_text(body, encoding="utf-8-sig")  # Windows PowerShell 5.1 要 BOM 才按 UTF-8 读中文路径
     args = ["powershell.exe", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass",
@@ -435,7 +435,7 @@ def rank_by_speed(sources: list[str], rel: str, sample: int = 256 * 1024, timeou
 
 
 def _check_writable(root: Path) -> None:
-    probe = Path(root) / f".aramhex-write-test-{os.getpid()}"
+    probe = Path(root) / f".ddhex-write-test-{os.getpid()}"
     try:
         probe.write_bytes(b"")
         probe.unlink()

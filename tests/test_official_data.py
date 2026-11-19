@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+from lolhex import __version__
 from lolhex.data.official import ManagedOfficial, OfficialDataError, check_manifest, check_payload
 
 
@@ -25,7 +26,7 @@ def package(data=None, revision=1):
     blob = gzip.compress(decoded, mtime=0)
     manifest = {"schema_version": 1, "revision": revision, "patch": data["static"]["patch"],
                 "source_date": data["static"]["generated"], "generated_at": "2026-10-24T20:00:00+08:00",
-                "min_client": "1.1.2", "package": {"path": f"revisions/{revision}/official.json.gz",
+                "min_client": __version__, "package": {"path": f"revisions/{revision}/official.json.gz",
                 "size": len(blob), "unpacked_size": len(decoded), "sha256": hashlib.sha256(blob).hexdigest()}}
     return manifest, blob
 
@@ -81,7 +82,7 @@ def test_constructor_uses_complete_bundled_without_network(setup):
 
 def test_manifest_accepts_test_client_version(setup):
     manifest, _ = package(revision=2)
-    assert check_manifest(manifest, "1.1.3-test.2")["revision"] == 2
+    assert check_manifest(manifest, "0.1.1-test.2")["revision"] == 2
 
 
 def test_download_validate_activate_and_restart(setup):

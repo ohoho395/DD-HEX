@@ -15,7 +15,7 @@ def _vision_check() -> dict:
     import numpy as np
 
     img = np.full((96, 480, 3), 255, np.uint8)
-    cv2.putText(img, "AramHex 2026", (12, 64), cv2.FONT_HERSHEY_SIMPLEX, 1.6, (0, 0, 0), 3)
+    cv2.putText(img, "DD HEX 2026", (12, 64), cv2.FONT_HERSHEY_SIMPLEX, 1.6, (0, 0, 0), 3)
     ok, buf = cv2.imencode(".png", img)
     img = cv2.imdecode(buf, cv2.IMREAD_COLOR)
     img = cv2.resize(img, None, fx=1.0, fy=1.0, interpolation=cv2.INTER_AREA)

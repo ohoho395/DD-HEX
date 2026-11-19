@@ -13,7 +13,7 @@ from lolhex.vision import capture  # noqa: E402
 
 @pytest.fixture
 def env(tmp_path, monkeypatch):
-    monkeypatch.setenv("ARAMHEX_HOME", str(tmp_path))
+    monkeypatch.setenv("DDHEX_HOME", str(tmp_path))
     later = []
     monkeypatch.setattr(autoshot.QTimer, "singleShot", lambda ms, fn: later.append(fn))
     class InlineThread:
@@ -144,7 +144,7 @@ def test_screenshot_thread_closes_its_capture_instance(tmp_path, monkeypatch):
         def close(self):
             self.closed = True
     monkeypatch.setattr(mss, "MSS", FakeMSS)
-    monkeypatch.setenv("ARAMHEX_HOME", str(tmp_path))
+    monkeypatch.setenv("DDHEX_HOME", str(tmp_path))
     monkeypatch.setattr(autoshot.QTimer, "singleShot", lambda ms, fn: fn())
     shot = autoshot.AutoShot(SimpleNamespace(settings=SimpleNamespace(debug_mode=True)))
     for slots in (['1', '2', '3'], ['4', '5', '6']):

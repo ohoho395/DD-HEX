@@ -28,18 +28,14 @@ class Resp:
         return False
 
 
-def test_pan_links_from_cloud_config(monkeypatch, tmp_path):
+def test_pan_links_do_not_fetch_or_load_upstream_cloud(monkeypatch, tmp_path):
+    import json
     from lolhex import cloud
-    monkeypatch.setenv("ARAMHEX_HOME", str(tmp_path))
+    monkeypatch.setenv("DDHEX_HOME", str(tmp_path))
+    (tmp_path / "cloud.json").write_text(json.dumps({"downloads": {"setup": "https://pan/s"}}), encoding="utf-8")
     monkeypatch.setattr(cloud, "_cache", None)
-    monkeypatch.setattr(cloud.requests, "get", lambda url, **k: Resp({"downloads": {"setup": "https://pan/s", "portable": ""}}))
-    assert update.pan_links() == {"setup": "https://pan/s"}
-
-    def boom(url, **k):
-        raise cloud.requests.ConnectionError("x")
-    monkeypatch.setattr(cloud.requests, "get", boom)
-    monkeypatch.setattr(cloud, "_cache", None)
-    assert update.pan_links() == {"setup": "https://pan/s"}  # 连不上：用上次存下的
+    monkeypatch.setattr(cloud.requests, "get", lambda *a, **k: pytest.fail("upstream cloud accessed"))
+    assert update.pan_links() == {}
 
 
 def test_download_gives_up_when_slow(monkeypatch, tmp_path):
@@ -52,7 +48,7 @@ def test_download_gives_up_when_slow(monkeypatch, tmp_path):
             yield b"x" * 1024
     monkeypatch.setattr(time, "monotonic", lambda: clock[0])
     monkeypatch.setattr(update.requests, "get", lambda url, **k: Resp(chunks=chunks(), length=10 ** 8))
-    info = {"file": "AramHex-Setup-9.exe", "url": "u", "sha256": "0" * 64, "size": 10 ** 8}
+    info = {"file": "DDHEX-Setup-9.exe", "url": "u", "sha256": "0" * 64, "size": 10 ** 8}
     with pytest.raises(update.SlowDownload):
         update.download(info, folder=tmp_path)
     assert not (tmp_path / info["file"]).exists()
@@ -61,7 +57,7 @@ def test_download_gives_up_when_slow(monkeypatch, tmp_path):
 def test_download_ok_when_fast(monkeypatch, tmp_path):
     body = b"y" * 4096
     monkeypatch.setattr(update.requests, "get", lambda url, **k: Resp(chunks=[body], length=len(body)))
-    info = {"file": "AramHex-Setup-9.exe", "url": "u", "sha256": hashlib.sha256(body).hexdigest(), "size": len(body)}
+    info = {"file": "DDHEX-Setup-9.exe", "url": "u", "sha256": hashlib.sha256(body).hexdigest(), "size": len(body)}
     assert update.download(info, folder=tmp_path).read_bytes() == body
 
 
@@ -95,7 +91,7 @@ def test_worker_offers_netdisk_on_failures(monkeypatch):
         raise update.SlowDownload("慢")
 
     def not_writable(*a, **k):
-        raise patch.NotWritable("C:/Program Files/AramHex")
+        raise patch.NotWritable("C:/Program Files/DD HEX")
 
     assert "不能写入" in run(not_writable)[0][0]
     assert run(net_down) == [("更新文件下载失败。", {"setup": "https://pan/s"})]

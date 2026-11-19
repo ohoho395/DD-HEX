@@ -1,0 +1,88 @@
+{
+  "base_repository": "https://github.com/czgreat/aramhex",
+  "base_commit": "5b5d37da1c555c29d8a91499b13fc4f56ca6db14",
+  "fork_version": "0.1.0",
+  "platform": "macOS-27.3-arm64-arm-64bit-Mach-O",
+  "python": "3.13.13",
+  "windows_exe_built": false,
+  "windows_game_verified": false,
+  "baseline": {
+    "tests": "1128",
+    "failures": "2",
+    "errors": "0",
+    "skipped": "29",
+    "time": "40.920",
+    "timestamp": "2026-11-19T13:18:51.365393+08:00",
+    "skip_reasons": {
+      "collection skipped": 1,
+      "可恢复的底层异常只有 Windows 上会记录": 1,
+      "只在 Windows 读进程计数器": 1,
+      "没有中文字体，跳过合成画面测试": 10,
+      "需要中文字体验证真实OCR": 2,
+      "替换脚本是 Windows PowerShell": 8,
+      "Windows registry and PowerShell": 5,
+      "命名互斥量只在 Windows 上": 1
+    }
+  },
+  "fork": {
+    "tests": "1141",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "29",
+    "time": "38.428",
+    "timestamp": "2026-11-19T13:31:54.828938+08:00",
+    "skip_reasons": {
+      "collection skipped": 1,
+      "可恢复的底层异常只有 Windows 上会记录": 1,
+      "只在 Windows 读进程计数器": 1,
+      "没有中文字体，跳过合成画面测试": 10,
+      "需要中文字体验证真实OCR": 2,
+      "替换脚本是 Windows PowerShell": 8,
+      "Windows registry and PowerShell": 5,
+      "命名互斥量只在 Windows 上": 1
+    }
+  },
+  "gui_ocr": {
+    "success": true,
+    "version": "0.1.0",
+    "qt": "6.11.2",
+    "platform": "offscreen",
+    "network_class": "QNetworkAccessManager",
+    "gui_ok": true,
+    "ocr_text": "AramHex 2026",
+    "ocr_score": 1.0,
+    "ocr_lines": [
+      "AramHex",
+      "2026"
+    ],
+    "ocr_ok": true
+  },
+  "screenshot_ocr": {
+    "size": [
+      1920,
+      1080
+    ],
+    "texts": [
+      "炽燃利息",
+      "虚幻武器",
+      "泰坦的坚决"
+    ],
+    "slots": [
+      "2128",
+      "1029",
+      "1001"
+    ],
+    "advice": "首选「虚幻武器」"
+  },
+  "checks": {
+    "compileall": true,
+    "pip_check": true,
+    "release_data": true,
+    "dataset_hashes": true,
+    "git_diff_check": true,
+    "mit_unchanged": true,
+    "bundled_statistics_unchanged": true,
+    "independent_code_review": "passed after fixes",
+    "source_archive_extracted_demo": true
+  }
+}

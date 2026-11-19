@@ -22,18 +22,18 @@ def _tree(root: Path, files: dict):
     return root
 
 
-OLD = {"AramHex.exe": b"exe-old", "_internal/base_library.zip": b"lib", "_internal/lolhex/data/a.json": b"a-old",
+OLD = {"DD HEX.exe": b"exe-old", "_internal/base_library.zip": b"lib", "_internal/lolhex/data/a.json": b"a-old",
        "_internal/lolhex/data/gone.json": b"x", "_internal/cv2/cv2.pyd": b"opencv"}
-NEW = {"AramHex.exe": b"exe-new", "_internal/base_library.zip": b"lib", "_internal/lolhex/data/a.json": b"a-new",
+NEW = {"DD HEX.exe": b"exe-new", "_internal/base_library.zip": b"lib", "_internal/lolhex/data/a.json": b"a-new",
        "_internal/lolhex/data/b.json": b"b", "_internal/cv2/cv2.pyd": b"opencv"}
 
 
 def test_plan_downloads_only_changed_files(tmp_path):
     m = patch.build_manifest(_tree(tmp_path / "new", NEW), "1.0.3")
-    assert set(m["patchable"]) == {"AramHex.exe", "_internal/base_library.zip", "_internal/lolhex/data/a.json",
+    assert set(m["patchable"]) == {"DD HEX.exe", "_internal/base_library.zip", "_internal/lolhex/data/a.json",
                                    "_internal/lolhex/data/b.json"}
     changed, stale = patch.plan(m, _tree(tmp_path / "old", OLD))
-    assert sorted(changed) == ["AramHex.exe", "_internal/lolhex/data/a.json", "_internal/lolhex/data/b.json"]
+    assert sorted(changed) == ["DD HEX.exe", "_internal/lolhex/data/a.json", "_internal/lolhex/data/b.json"]
     assert stale == ["_internal/lolhex/data/gone.json"]
 
 
@@ -85,17 +85,17 @@ def test_prepare_uses_next_source_when_cache_is_stale(tmp_path, server):
     _publish(srv, "fresh", NEW, "1.0.3")
     root = _tree(tmp_path / "app", OLD)
     changed, stale = patch.prepare("1.0.3", root=root, sources=[f"{base}/stale", f"{base}/fresh"])
-    assert (root / patch.STAGING / "AramHex.exe").read_bytes() == b"exe-new"
+    assert (root / patch.STAGING / "DD HEX.exe").read_bytes() == b"exe-new"
     assert len(changed) == 3 and stale == ["_internal/lolhex/data/gone.json"]
 
 
 def test_download_rejects_tampered_file(tmp_path, server):
     srv, base = server
     _publish(srv, "u", NEW, "1.0.3")
-    (srv / "u" / "files" / "AramHex.exe").write_bytes(b"evil!!!")
-    (srv / "u" / "files" / "AramHex.exe.gz").write_bytes(__import__("gzip").compress(b"evil!!!"))
+    (srv / "u" / "files" / "DD HEX.exe").write_bytes(b"evil!!!")
+    (srv / "u" / "files" / "DD HEX.exe.gz").write_bytes(__import__("gzip").compress(b"evil!!!"))
     root = _tree(tmp_path / "app", OLD)
-    with pytest.raises(patch.NeedFullInstall, match="AramHex.exe"):
+    with pytest.raises(patch.NeedFullInstall, match="DD HEX.exe"):
         patch.prepare("1.0.3", root=root, sources=[f"{base}/u"])
     assert not (root / patch.STAGING).exists()  # 校验不过：暂存目录清掉
 
@@ -116,7 +116,7 @@ def test_apply_script_replaces_files(tmp_path):
     _tree(root, staged)
     changed = [k[len(patch.STAGING) + 1:] for k in staged]
     patch.launch_apply(root, changed, ["_internal/lolhex/data/gone.json"], "1.0.3", pid=_done_pid(), wait=True)
-    assert (root / "AramHex.exe").read_bytes() == b"exe-new"
+    assert (root / "DD HEX.exe").read_bytes() == b"exe-new"
     assert (root / "_internal/lolhex/data/b.json").read_bytes() == b"b"
     assert not (root / "_internal/lolhex/data/gone.json").exists()
     assert (root / "_internal/cv2/cv2.pyd").read_bytes() == b"opencv"
@@ -127,8 +127,8 @@ def test_apply_script_replaces_files(tmp_path):
 @win
 def test_apply_script_rolls_back_on_failure(tmp_path):
     root = _tree(tmp_path / "app", OLD)
-    _tree(root, {f"{patch.STAGING}/AramHex.exe": b"exe-new"})  # a.json 的新文件缺了：替换到一半失败
-    patch.launch_apply(root, ["AramHex.exe", "_internal/lolhex/data/a.json"], ["_internal/lolhex/data/gone.json"],
+    _tree(root, {f"{patch.STAGING}/DD HEX.exe": b"exe-new"})  # a.json 的新文件缺了：替换到一半失败
+    patch.launch_apply(root, ["DD HEX.exe", "_internal/lolhex/data/a.json"], ["_internal/lolhex/data/gone.json"],
                        "1.0.3", pid=_done_pid(), wait=True)
     for rel, body in OLD.items():
         assert (root / rel).read_bytes() == body, rel  # 全部还原成旧版本
@@ -179,11 +179,11 @@ def test_place_failure_removes_only_new_files_and_restores_old_files(tmp_path):
 
 def _run_with_file_held(root, anchor, target):
     """让替换脚本在指定位置打开文件并一直占着（拒绝共享删除），模拟扫描软件；时机确定，不靠抢。"""
-    body = patch.apply_script(root, ["AramHex.exe", "b.txt"], [], _done_pid(), "9.9.9", None)
+    body = patch.apply_script(root, ["DD HEX.exe", "b.txt"], [], _done_pid(), "9.9.9", None)
     assert anchor in body
     hold = f"$global:held = [IO.File]::Open({target}, 'Open', 'Read', 'Read')"
     script = root.parent / "apply.ps1"
-    script.write_text(body.replace(anchor, f"{anchor}\nif ($rel -eq 'AramHex.exe') {{ {hold} }}"), encoding="utf-8-sig")
+    script.write_text(body.replace(anchor, f"{anchor}\nif ($rel -eq 'DD HEX.exe') {{ {hold} }}"), encoding="utf-8-sig")
     subprocess.run(["powershell.exe", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass",
                     "-File", str(script)], check=True, timeout=120)
 
@@ -191,10 +191,10 @@ def _run_with_file_held(root, anchor, target):
 @win
 def test_rollback_copies_back_when_backup_is_held(tmp_path):
     """旧 EXE 刚进备份就被占着，挪不回去：不能让安装目录里没有 EXE。"""
-    root = _tree(tmp_path / "app", {"AramHex.exe": b"exe-old", "b.txt": b"b-old"})
-    _tree(root, {f"{patch.STAGING}/AramHex.exe": b"exe-new"})  # b.txt 的新文件缺了：替换到一半失败
+    root = _tree(tmp_path / "app", {"DD HEX.exe": b"exe-old", "b.txt": b"b-old"})
+    _tree(root, {f"{patch.STAGING}/DD HEX.exe": b"exe-new"})  # b.txt 的新文件缺了：替换到一半失败
     _run_with_file_held(root, "$moved += $rel", "$bak")
-    assert (root / "AramHex.exe").read_bytes() == b"exe-old"
+    assert (root / "DD HEX.exe").read_bytes() == b"exe-old"
     assert (root / "b.txt").read_bytes() == b"b-old"
     assert (root / "update-failed.txt").is_file() and not patch.rollback_incomplete(root)
     patch.take_failure(root)
@@ -204,35 +204,35 @@ def test_rollback_copies_back_when_backup_is_held(tmp_path):
 @win
 def test_rollback_keeps_backup_when_new_file_cannot_be_replaced(tmp_path):
     """新 EXE 被占着换不回去：保留备份、如实报告，并拒绝再次增量覆盖唯一备份。"""
-    root = _tree(tmp_path / "app", {"AramHex.exe": b"exe-old", "b.txt": b"b-old"})
-    _tree(root, {f"{patch.STAGING}/AramHex.exe": b"exe-new"})
+    root = _tree(tmp_path / "app", {"DD HEX.exe": b"exe-old", "b.txt": b"b-old"})
+    _tree(root, {f"{patch.STAGING}/DD HEX.exe": b"exe-new"})
     _run_with_file_held(root, "$placed += $rel", "$dst")
     assert patch.rollback_incomplete(root)
     assert patch.take_failure(root)
-    assert (root / patch.BACKUP / "AramHex.exe").read_bytes() == b"exe-old"
+    assert (root / patch.BACKUP / "DD HEX.exe").read_bytes() == b"exe-old"
     assert patch.take_failure(root) is None  # 只报一次，备份还在
-    assert (root / patch.BACKUP / "AramHex.exe").is_file()
-    _tree(root, {f"{patch.STAGING}/AramHex.exe": b"exe-new2"})
-    patch.launch_apply(root, ["AramHex.exe"], [], "9.9.9", pid=_done_pid(), wait=True)
-    assert (root / "AramHex.exe").read_bytes() == b"exe-new"
+    assert (root / patch.BACKUP / "DD HEX.exe").is_file()
+    _tree(root, {f"{patch.STAGING}/DD HEX.exe": b"exe-new2"})
+    patch.launch_apply(root, ["DD HEX.exe"], [], "9.9.9", pid=_done_pid(), wait=True)
+    assert (root / "DD HEX.exe").read_bytes() == b"exe-new"
     assert patch.rollback_incomplete(root)
-    assert (root / patch.BACKUP / "AramHex.exe").read_bytes() == b"exe-old"
+    assert (root / patch.BACKUP / "DD HEX.exe").read_bytes() == b"exe-old"
 
 
 @win
 def test_old_backup_held_records_failure_and_relaunches(tmp_path):
     """上次留下的备份删不掉：这次不更新，但要记下原因并重新打开助手，不能让助手直接消失。"""
-    root = _tree(tmp_path / "app", {"AramHex.exe": b"exe-old"})
-    _tree(root, {f"{patch.STAGING}/AramHex.exe": b"exe-new", f"{patch.BACKUP}/left.txt": b"left"})
+    root = _tree(tmp_path / "app", {"DD HEX.exe": b"exe-old"})
+    _tree(root, {f"{patch.STAGING}/DD HEX.exe": b"exe-new", f"{patch.BACKUP}/left.txt": b"left"})
     relaunch = tmp_path / "relaunch.cmd"
     relaunch.write_text("echo ok> relaunched.txt\n")
     with open(root / patch.BACKUP / "left.txt", "rb"):  # 不允许删除
-        patch.launch_apply(root, ["AramHex.exe"], [], "9.9.9", relaunch=str(relaunch), pid=_done_pid(), wait=True)
+        patch.launch_apply(root, ["DD HEX.exe"], [], "9.9.9", relaunch=str(relaunch), pid=_done_pid(), wait=True)
     deadline = time.time() + 10
     while not (root / "relaunched.txt").exists() and time.time() < deadline:
         time.sleep(0.1)
     assert (root / "relaunched.txt").exists()
-    assert (root / "AramHex.exe").read_bytes() == b"exe-old"
+    assert (root / "DD HEX.exe").read_bytes() == b"exe-old"
     assert (root / patch.BACKUP / "left.txt").read_bytes() == b"left"
     assert not patch.rollback_incomplete(root)
     assert patch.BACKUP in patch.take_failure(root)
@@ -242,10 +242,10 @@ def test_old_backup_held_records_failure_and_relaunches(tmp_path):
 def test_rollback_reports_incomplete_when_new_file_cannot_be_removed(tmp_path):
     """这次新增的文件被占着删不掉：不能说已恢复原版本。"""
     root = _tree(tmp_path / "app", {"b.txt": b"b-old"})
-    _tree(root, {f"{patch.STAGING}/AramHex.exe": b"added"})  # 旧版本没有 AramHex.exe；b.txt 的新文件缺了，替换到一半失败
+    _tree(root, {f"{patch.STAGING}/DD HEX.exe": b"added"})  # 旧版本没有 DD HEX.exe；b.txt 的新文件缺了，替换到一半失败
     _run_with_file_held(root, "$placed += $rel", "$dst")
     assert (root / "b.txt").read_bytes() == b"b-old"
-    assert (root / "AramHex.exe").exists()
+    assert (root / "DD HEX.exe").exists()
     assert (root / "update-failed.txt").is_file() and patch.rollback_incomplete(root)
 
 
@@ -254,12 +254,12 @@ def test_gz_preferred_and_plain_fallback(tmp_path, server):
     import gzip
     srv, base = server
     _publish(srv, "u", NEW, "1.0.3")
-    assert (srv / "u" / "files" / "AramHex.exe.gz").exists() and (srv / "u" / "files" / "AramHex.exe").exists()
-    assert gzip.decompress((srv / "u" / "files" / "AramHex.exe.gz").read_bytes()) == b"exe-new"
-    (srv / "u" / "files" / "AramHex.exe.gz").write_bytes(b"not gzip")
+    assert (srv / "u" / "files" / "DD HEX.exe.gz").exists() and (srv / "u" / "files" / "DD HEX.exe").exists()
+    assert gzip.decompress((srv / "u" / "files" / "DD HEX.exe.gz").read_bytes()) == b"exe-new"
+    (srv / "u" / "files" / "DD HEX.exe.gz").write_bytes(b"not gzip")
     root = _tree(tmp_path / "app", OLD)
     patch.prepare("1.0.3", root=root, sources=[f"{base}/u"])
-    assert (root / patch.STAGING / "AramHex.exe").read_bytes() == b"exe-new"
+    assert (root / patch.STAGING / "DD HEX.exe").read_bytes() == b"exe-new"
 
 def test_dist_info_metadata_is_patchable(tmp_path):
     """两次正式构建之间，第三方库的安装记录（dist-info/RECORD）会变：不能因此要求完整安装包。"""
@@ -278,5 +278,5 @@ def test_prepare_reports_phases_and_progress(tmp_path, server):
     patch.prepare("1.0.3", root=_tree(tmp_path / "app", OLD), sources=[f"{base}/u"],
                   phase=phases.append, progress=lambda d, t: seen.append((d, t)))
     assert phases == ["检查更新文件…", "比对本机文件…", "下载更新…"]
-    total = sum(m["packed"][r] for r in ("AramHex.exe", "_internal/lolhex/data/a.json", "_internal/lolhex/data/b.json"))
+    total = sum(m["packed"][r] for r in ("DD HEX.exe", "_internal/lolhex/data/a.json", "_internal/lolhex/data/b.json"))
     assert seen and seen[-1] == (total, total) and all(d <= t for d, t in seen)

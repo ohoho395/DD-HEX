@@ -1,0 +1,125 @@
+{
+  "app": "HexPilot",
+  "demo": true,
+  "data": {
+    "patch": "16.22",
+    "static_at": null,
+    "augments": 316,
+    "heroes": 173,
+    "error": null,
+    "official": {
+      "official_revision": 0,
+      "official_origin": "bundled",
+      "official_date": "2026-11-05",
+      "official_pending": null,
+      "official_error": null
+    },
+    "dataset": true,
+    "dataset_patch": "16.22",
+    "dataset_snapshot": "2026-11-06T12:02:35+08:00",
+    "dataset_origin": "bundled",
+    "dataset_revision": "c31f7267aeec",
+    "dataset_window": null,
+    "dataset_matches": 4145668,
+    "dataset_collected": 4281885,
+    "dataset_regions": [
+      "CQ100",
+      "GZ100",
+      "HN1",
+      "HN10",
+      "NJ100",
+      "TJ100",
+      "TJ101"
+    ],
+    "dataset_label": "自采统计·16.22版本",
+    "bands_available": false,
+    "band": null,
+    "band_effective": null,
+    "dataset_mode": "normal",
+    "dataset_mode_label": null,
+    "event_label": null,
+    "event_fallback": false,
+    "data_updated_at": null,
+    "sync_error": null,
+    "data_progress": null,
+    "data_note": null,
+    "data_offer": null
+  },
+  "evaluation": {
+    "hero_id": "17",
+    "base_win": 0.537713,
+    "slots": [
+      {
+        "index": 0,
+        "augment_id": "1029",
+        "score": 6.88,
+        "basis": "hero_win",
+        "verdict": "best",
+        "reasons": [
+          "本英雄黄金胜率第1/52",
+          "本英雄胜率 60.7%（98980局，样本充足，自采统计·16.22版本），平滑后较英雄基准 +6.9pp"
+        ],
+        "name": "虚幻武器",
+        "rarity": "gold",
+        "icon": "https://game.gtimg.cn/images/lol/act/img/rune/etherealweapon_small.png",
+        "desc": "你的技能可施加。每个目标有1秒冷却时间。",
+        "tier": null,
+        "pick": 0.17408678308800898,
+        "rank": 1,
+        "rank_total": 52,
+        "rank_basis": "hero_rarity_win_rate",
+        "win": 0.606698,
+        "games": 98980,
+        "sample": "high",
+        "source": "public"
+      },
+      {
+        "index": 1,
+        "augment_id": "2128",
+        "score": null,
+        "basis": "new",
+        "verdict": "nodata",
+        "reasons": [
+          "新海克斯，还没有数据"
+        ],
+        "name": "炽燃利息",
+        "rarity": "gold",
+        "icon": "",
+        "desc": ""
+      },
+      {
+        "index": 2,
+        "augment_id": "1373",
+        "score": 0.38,
+        "basis": "hero_win",
+        "verdict": "reroll",
+        "reasons": [
+          "本英雄黄金胜率第9/52",
+          "本英雄胜率 54.1%（122131局，样本充足，自采统计·16.22版本），平滑后较英雄基准 +0.4pp"
+        ],
+        "name": "缩小引擎",
+        "rarity": "gold",
+        "icon": "https://game.gtimg.cn/images/lol/act/img/rune/shrinkengine_small.png",
+        "desc": "参与击杀后会让你变小并且获得技能急速和移动速度。",
+        "tier": null,
+        "pick": 0.21480493943545792,
+        "rank": 9,
+        "rank_total": 52,
+        "rank_basis": "hero_rarity_win_rate",
+        "win": 0.541492,
+        "games": 122131,
+        "sample": "high",
+        "source": "public"
+      }
+    ],
+    "pentakill": null,
+    "best_index": 0,
+    "advice": "首选「虚幻武器」",
+    "sources": {
+      "tencent_date": "20261105",
+      "win_source": "自采统计·16.22版本",
+      "data_patch": "16.22",
+      "patch": "16.22"
+    }
+  }
+}

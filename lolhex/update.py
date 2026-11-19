@@ -1,16 +1,8 @@
-"""程序更新：查 GitHub Releases 有没有新版本；用户点了才下载安装，从不自己装。
+"""DD HEX application updates from a separately configured GitHub repository.
 
-    GET https://api.github.com/repos/<仓库>/releases/latest
-      tag_name  版本（v1.2.3）
-      body      更新说明
-      assets    AramHex-Setup-<版本>.exe（安装版）、AramHex-Portable-<版本>.zip（便携版）、SHA256SUMS.txt
-
-安装包的 SHA-256 优先用 GitHub 给每个 asset 算的 digest（"sha256:..."），没有时读 SHA256SUMS.txt。
-下载后核对 SHA-256，不一致就删掉并报错。匿名接口每个 IP 每小时 60 次，启动、再次打开、每 30 分钟各查一次足够。
-便携版不能替换自己：有新版本时只打开下载页。
-
-查更新先问官网（云控配置的官网地址），不通再问 GitHub。1.1.7 起不再用 jsDelivr：
-默认镜像列表为空，check_mirror / probe_newer 只在显式传入镜像地址时使用（以后加备用地址时复用）。
+No application service is contacted until distribution.UPDATE_REPO is configured.
+Explicit developer APIs/mirrors remain available for local tests. Downloads must
+pass SHA-256 verification; the inherited incremental rollback remains intact.
 """
 
 from __future__ import annotations
@@ -25,24 +17,29 @@ from pathlib import Path
 
 import requests
 
-from . import GITHUB_REPO, MIRROR, RELEASES_PAGE, WEBSITE, cloud
+from . import GITHUB_REPO, MIRROR, RELEASES_PAGE, WEBSITE, cloud, distribution
 
 log = logging.getLogger(__name__)
-API = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
-FILE_RE = re.compile(r"^AramHex-Setup-[0-9][0-9A-Za-z.\-]*\.exe$")
+API = distribution.update_api()
+FILE_RE = re.compile(r"^DDHEX-Setup-[0-9][0-9A-Za-z.\-]*\.exe$")
 SUMS = "SHA256SUMS.txt"
 VERSION_MIRRORS: list[str] = []  # 1.1.7 起不用 jsDelivr；格式同旧版："<镜像>/@latest/lolhex/__init__.py"
 _VERSION = re.compile(r'^__version__\s*=\s*"([0-9][0-9A-Za-z.\-]*)"', re.M)
 
 
 PROBE_HOSTS: tuple[str, ...] = ()  # 同上，按 tag 试探的镜像主机
-SITE_LATEST = f"{MIRROR}/latest.json"
-DOWNLOAD_PAGE = f"{WEBSITE}/#download"
+SITE_LATEST = ""
+DOWNLOAD_PAGE = ""
+
+
+def enabled() -> bool:
+    """Whether this distribution has its own validated application updater."""
+    return bool(distribution.update_repo())
 
 
 def download_page() -> str:
     """官网下载页（云控换了官网地址就用新的）。"""
-    return f"{cloud.site()}/#download"
+    return distribution.releases_page()
 SLOW_BPS = 150 * 1024    # 整包下载：前 SLOW_AFTER_S 秒平均低于这个速度就放弃，改让用户去网盘
 SLOW_AFTER_S = 12
 
@@ -59,7 +56,8 @@ def pan_links(timeout: float = 6) -> dict:
 
 
 def check_site(current: str, timeout: float = 6, url: str = SITE_LATEST) -> dict | None:
-    """官网镜像上的最新版本（从 GitHub Release 同步：版本、说明、安装包名、SHA-256、GitHub 下载地址）。"""
+    """Parse an explicitly supplied independent release manifest."""
+    distribution.reject_upstream_update(url)
     r = requests.get(url, headers=cloud.headers(url), timeout=timeout)
     r.raise_for_status()
     j = r.json()
@@ -118,6 +116,7 @@ def check_mirror(current: str, timeout: float = 8, mirrors=VERSION_MIRRORS, prob
     from concurrent.futures import ThreadPoolExecutor
 
     def alias(url):
+        distribution.reject_upstream_update(url)
         r = requests.get(url, headers=cloud.headers(url), timeout=timeout)
         r.raise_for_status()
         m = _VERSION.search(r.text)
@@ -180,26 +179,36 @@ def _sha_from_sums(assets: list[dict], name: str, timeout: float) -> str | None:
     sums = next((a for a in assets if a.get("name") == SUMS), None)
     if not sums:
         return None
+    distribution.reject_upstream_update(sums["browser_download_url"])
     r = requests.get(sums["browser_download_url"], headers=cloud.headers(sums["browser_download_url"]), timeout=timeout)
     r.raise_for_status()
     for line in r.text.splitlines():
-        parts = line.strip().split()
+        parts = line.strip().split(maxsplit=1)
         if len(parts) == 2 and parts[1].lstrip("*") == name and re.fullmatch(r"[0-9a-fA-F]{64}", parts[0]):
             return parts[0].lower()
     return None
 
 
-def check(current: str, timeout: float = 8, strict: bool = False, api: str = API,
+def check(current: str, timeout: float = 8, strict: bool = False, api: str | None = None,
           mirrors=VERSION_MIRRORS, probe_hosts=PROBE_HOSTS, site: str | None = SITE_LATEST) -> dict | None:
-    """有新版本返回它的信息，没有或查不到返回 None。先问官网，不通再问 GitHub（传入镜像时最后问镜像）。
-    strict=True（用户手动点"检查更新"）时查不到就抛异常，好告诉用户是没新版本还是没连上。
-    site 用默认值时按云控的官网地址顺序问（换了新官网先问新的，内置 aramhex.com 最后）。"""
+    """Return a verified release from the independent repo or explicit test source.
+
+    No configured repository means no default request. strict distinguishes failed
+    checks from successful checks when a source has actually been configured.
+    """
+    api = distribution.update_api() if api is None else api
+    if not api and not site and not mirrors and not probe_hosts:
+        return None
+    if api:
+        distribution.reject_upstream_update(api)
     for url in ([f"{s}/u/latest.json" for s in cloud.sites()] if site == SITE_LATEST else [site] if site else []):
         try:
             return check_site(current, min(timeout, 6), url)
         except (requests.RequestException, ValueError, KeyError, TypeError) as e:
             log.info("官网查更新失败（%s），换下一个：%s", url, e)
     try:
+        if not api:
+            return check_mirror(current, timeout, mirrors, probe_hosts) if mirrors or probe_hosts else None
         r = requests.get(api, headers=cloud.headers(api, Accept="application/vnd.github+json"), timeout=timeout)
         if r.status_code == 404:
             return None  # 还没有发布过
@@ -230,6 +239,7 @@ def check(current: str, timeout: float = 8, strict: bool = False, api: str = API
         if strict:
             raise
         return None
+    distribution.reject_upstream_update(setup["browser_download_url"])
     return {"version": version, "file": setup["name"], "sha256": sha, "size": setup.get("size"),
             "url": setup["browser_download_url"], "notes": (rel.get("body") or "").strip()[:600],
             "page": rel.get("html_url") or RELEASES_PAGE}
@@ -240,12 +250,13 @@ def download(info: dict, progress=None, folder: Path | None = None, slow_bps: fl
     """下载安装包并核对 SHA-256；不一致就删掉并报错。progress(已下载字节, 总字节)。
     下了 slow_after_s 秒平均速度还低于 slow_bps 就停下，抛 SlowDownload（国内连 GitHub 常见）。"""
     import time
-    folder = Path(folder or Path(tempfile.gettempdir()) / "aramhex-update")
+    folder = Path(folder or Path(tempfile.gettempdir()) / "ddhex-update")
     folder.mkdir(parents=True, exist_ok=True)
     dest = folder / info["file"]
     h = hashlib.sha256()
     done = 0
     start = time.monotonic()
+    distribution.reject_upstream_update(info["url"])
     with requests.get(info["url"], stream=True, timeout=(15, 30), headers=cloud.headers(info["url"])) as r:
         r.raise_for_status()
         total = int(r.headers.get("Content-Length") or info.get("size") or 0)

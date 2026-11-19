@@ -5,7 +5,7 @@ pytest.importorskip("PySide6")
 
 
 def test_run_starts(tmp_path, monkeypatch):
-    monkeypatch.setenv("ARAMHEX_HOME", str(tmp_path))
+    monkeypatch.setenv("DDHEX_HOME", str(tmp_path))
     from PySide6.QtWidgets import QApplication
 
     from lolhex.config import Settings
@@ -21,7 +21,7 @@ def test_run_starts(tmp_path, monkeypatch):
 
 
 def test_version_notice_once(tmp_path, monkeypatch):
-    monkeypatch.setenv("ARAMHEX_HOME", str(tmp_path))
+    monkeypatch.setenv("DDHEX_HOME", str(tmp_path))
     from lolhex import __version__
     from lolhex.config import Settings
     from lolhex.ui.overlay import version_notice
@@ -42,7 +42,7 @@ def test_launcher_shows_friendly_error(tmp_path, monkeypatch):
     spec = importlib.util.spec_from_file_location("launcher", Path(__file__).parent.parent / "packaging" / "launcher.py")
     launcher = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(launcher)
-    monkeypatch.setenv("ARAMHEX_HOME", str(tmp_path))
+    monkeypatch.setenv("DDHEX_HOME", str(tmp_path))
     path = launcher._crash_log("Traceback: 测试")
     assert path and "测试" in Path(path).read_text(encoding="utf-8")
 

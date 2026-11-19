@@ -46,8 +46,8 @@ def test_geometry_or_session_changes_during_scan_drop_result(monkeypatch, store,
     old_rect = current["rect"]
     original = detector.scan_full
 
-    def scan(*args):
-        result = original(*args)
+    def scan(*args, **kwargs):
+        result = original(*args, **kwargs)
         if change == "move":
             current["rect"] = window.Rect(300, 200, 1920, 1080)
         elif change == "resize":
@@ -84,8 +84,8 @@ def test_window_move_during_recommendation_cannot_publish_old_score(monkeypatch,
     result = engine._observed_scan(detector, current["rect"], full=True, reason="test", hwnd=7)
     original = module.recommend.evaluate
 
-    def move_during_evaluation(*args):
-        score = original(*args)
+    def move_during_evaluation(*args, **kwargs):
+        score = original(*args, **kwargs)
         current["rect"] = window.Rect(100, 100, 1920, 1080)
         return score
 
@@ -102,11 +102,11 @@ def test_background_without_known_geometry_change_preserves_tracking(monkeypatch
     calibration = detector.calibration
     original = detector.scan_full
 
-    def background(*args):
+    def background(*args, **kwargs):
         current["foreground"] = False
         if minimized:
             current["rect"] = None
-        return original(*args)
+        return original(*args, **kwargs)
 
     detector.scan_full = background
     result = engine._observed_scan(detector, old_rect, full=True, reason="test", hwnd=7)
@@ -134,10 +134,10 @@ def test_new_cards_and_scores_are_published_together_after_recomputing(monkeypat
     original = module.recommend.evaluate
     observed = []
 
-    def inspect_during_evaluation(*args):
+    def inspect_during_evaluation(*args, **kwargs):
         with engine._lock:
             observed.append((engine.state["offer"], engine.state["evaluation"]))
-        return original(*args)
+        return original(*args, **kwargs)
 
     monkeypatch.setattr(module.recommend, "evaluate", inspect_during_evaluation)
     engine._on_offer(result)
@@ -157,12 +157,12 @@ def test_calibration_file_only_changes_after_window_validation(monkeypatch, stor
     original = mock.scan_full
     old_rect = current["rect"]
 
-    def calibrate(*args):
+    def calibrate(*args, **kwargs):
         detector.calibration = Calibration.default(1920, 1080)
         detector._save_calibration()
         if move:
             current["rect"] = window.Rect(100, 100, 1920, 1080)
-        return original(*args)
+        return original(*args, **kwargs)
 
     detector.scan_full = calibrate
     engine._detector = detector

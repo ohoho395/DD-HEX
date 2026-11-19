@@ -10,7 +10,7 @@ QtWidgets = pytest.importorskip("PySide6.QtWidgets")
 
 @pytest.fixture
 def mw(tmp_path, monkeypatch):
-    monkeypatch.setenv("ARAMHEX_HOME", str(tmp_path))
+    monkeypatch.setenv("DDHEX_HOME", str(tmp_path))
     app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
     from lolhex import cloud
     from lolhex.config import Settings
@@ -52,22 +52,13 @@ def test_cloud_force_then_player_change_then_removed(mw, monkeypatch):
     assert s.badge_position == "top" and w.set_badge.currentData() == "top" and s.speed == "saver"
 
 
-def test_turning_usage_off_drops_ids_rule_at_once(mw, monkeypatch):
-    """1.1.9：按编号挑的规则，玩家关掉使用统计（没有编号了）马上撤，不等下次刷新云控；再打开马上回来。"""
-    from lolhex import __version__
+def test_usage_control_cannot_enable_telemetry(mw):
     w, s, _, cloud, _ = mw
-    s.send_usage = True
-    w.set_usage.blockSignals(True)
+    assert not w.set_usage.isEnabled() and not w.set_usage.isVisible()
     w.set_usage.setChecked(True)
-    w.set_usage.blockSignals(False)
-    cfg = cloud._merge({"settings_v2": [{"id": "pick", "versions": [__version__], "ids": [s.install_id], "force": {"vision_priority": "normal"}}]})
-    monkeypatch.setattr(cloud, "get", lambda: cfg)
-    w._apply_cloud_settings(cfg)
-    assert s.vision_priority == "normal" and "vision_priority" in s.forced
-    w.set_usage.setChecked(False)
-    assert s.send_usage is False and s.vision_priority == "below_normal" and not s.forced
-    w.set_usage.setChecked(True)
-    assert s.vision_priority == "normal"
+    w._settings_edited()
+    assert s.send_usage is False and s.install_id == ""
+    assert "X-AramHex-Id" not in cloud.headers("https://aramhex.com/config.json")
 
 
 def test_cloud_force_reason_waits_until_the_game_is_over(mw, monkeypatch):

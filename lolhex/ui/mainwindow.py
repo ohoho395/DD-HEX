@@ -19,10 +19,10 @@ from PySide6.QtCore import Qt, QThread, QTimer, Signal
 from PySide6.QtGui import QAction, QIcon, QKeySequence, QPixmap
 from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QFrame, QGridLayout,
                                QHBoxLayout, QKeySequenceEdit, QLabel, QLineEdit, QMainWindow, QMenu, QMessageBox, QProgressBar, QScrollArea,
-                               QPushButton, QSizePolicy, QSystemTrayIcon, QTabWidget, QVBoxLayout, QWidget)
+                               QPushButton, QSizePolicy, QSpinBox, QSystemTrayIcon, QTabWidget, QVBoxLayout, QWidget)
 
-from .. import DATA_HOMEPAGE, HOMEPAGE, __version__, cloud, cloudsettings, i18n, logupload, patch, rank, recommend, update
-from ..config import is_portable
+from .. import APP_NAME, DATA_HOMEPAGE, HOMEPAGE, __version__, cloud, cloudsettings, i18n, logupload, patch, rank, recommend, update
+from ..config import is_portable, program_dir
 from ..vision import window as win
 from ..data.public import BANDS, norm_band
 from . import autostart
@@ -201,11 +201,12 @@ BAND_CHOICES = [("", "全体")] + [(c, BANDS[c]) for c in BANDS]
 
 
 def about_html() -> str:
-    links = [f"<a href='{cloud.site()}'>官网</a>", f"<a href='{HOMEPAGE}'>GitHub</a>", f"<a href='{DATA_HOMEPAGE}'>统计数据</a>"]
+    links = ["独立衍生版 · 基于 <a href='https://github.com/czgreat/aramhex'>czgreat/aramhex</a>",
+             f"统计数据：<a href='{DATA_HOMEPAGE}'>czgreat/aramhex-data</a>（CC BY-NC 4.0，仅限非商业）"]
     for c in cloud.community():  # 云控：QQ 群、B 站、赞助……
         label = escape(c["name"] + (" " + c["text"] if c.get("text") else ""))
         links.append(f"<a href='{escape(c['url'])}'>{label}</a>" if c.get("url") else label)
-    return (f"<b>AramHex 海克斯大乱斗助手</b> {__version__}{'（便携版）' if is_portable() else ''}<br>" + " · ".join(links) +
+    return (f"<b>{APP_NAME}</b> {__version__}{'（便携版）' if is_portable() else ''}<br>" + "<br>".join(links) +
             "<br><span style='color:#777'>非官方工具，与腾讯、Riot Games 无关。</span>")
 
 
@@ -218,7 +219,7 @@ class MainWindow(QMainWindow):
         self._cand_ids: list = []
         self._panel_hero = None
         self._hint_shown = False
-        self.setWindowTitle(f"海克斯大乱斗助手 v{__version__}")
+        self.setWindowTitle(f"{APP_NAME} v{__version__}")
         self.setWindowIcon(app_icon())
         self.resize(700, 820)
         self.setMinimumSize(360, 260)
@@ -232,7 +233,7 @@ class MainWindow(QMainWindow):
         head = QHBoxLayout()
         logo = QLabel()
         logo.setPixmap(app_icon().pixmap(40, 40))
-        title = QLabel("<b style='font-size:17px'>海克斯大乱斗助手</b> "
+        title = QLabel(f"<b style='font-size:17px'>{APP_NAME}</b> "
                        f"<span style='font-size:13px;color:#555'>{__version__}</span>")
         head.addWidget(logo)
         head.addWidget(title, 1)
@@ -241,7 +242,7 @@ class MainWindow(QMainWindow):
         self.btn_comm.hide()
         head.addWidget(self.btn_comm)
         self.btn_dash = QPushButton("帮助")
-        self.btn_dash.clicked.connect(lambda: webbrowser.open(f"{cloud.site()}/#faq"))
+        self.btn_dash.clicked.connect(self._open_help)
         head.addWidget(self.btn_dash)
         self._show_primary()
         lay.addLayout(head)
@@ -375,6 +376,8 @@ class MainWindow(QMainWindow):
         self.tabs.addTab(w2, "海克斯选择")
 
         self.tabs.addTab(self._settings_tab(), "设置")
+        # 设置页底部已有数据状态，小窗口时让表单保留可操作的高度。
+        self.tabs.currentChanged.connect(lambda page: sc.setVisible(page != 2))
         lay.addWidget(self.tabs, 1)
         # 小屏或高缩放时保留完整内容，允许滚动，不让底部操作落到屏幕外。
         root.setMinimumWidth(640)
@@ -390,6 +393,30 @@ class MainWindow(QMainWindow):
         self.refresh()
 
     # ---------- 设置 ----------
+
+    def _clear_saved_screenshots(self):
+        from .autoshot import clear_saved_screenshots
+
+        answer = QMessageBox.question(
+            self, "清理截图", "删除 DD HEX 已保存的选卡截图和调试截图？此操作无法撤销。",
+            QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+        if answer != QMessageBox.Yes:
+            return
+        deleted, failed = clear_saved_screenshots(self.engine.home)
+        if failed:
+            message = f"已删除 {deleted} 张截图。部分文件或文件夹无法清理。"
+        elif deleted:
+            message = f"已删除 {deleted} 张截图。"
+        else:
+            message = "没有需要清理的截图。"
+        QMessageBox.information(self, "清理截图", message)
+
+    def _open_help(self):
+        path = program_dir() / "docs" / "WINDOWS.md"
+        if path.is_file():
+            webbrowser.open(path.as_uri())
+        else:
+            QMessageBox.information(self, "使用帮助", "请查看随程序提供的 README.md 和 docs/WINDOWS.md。")
 
     def _settings_tab(self) -> QWidget:
         """设置页：一屏放下，不用滚动；改了马上生效，没有「保存」按钮。"""
@@ -447,13 +474,27 @@ class MainWindow(QMainWindow):
             lambda i: self.badge_preview.set_position(self.set_badge.itemData(i)))
         self.set_auto = QCheckBox("开机自动启动")
         self.set_auto.setChecked(autostart.is_enabled())
-        self.set_data = QCheckBox("自动获取最新海克斯数据（建议开启）")
+        self.set_data = QCheckBox("从公开 GitHub 更新统计（仅限非商业使用）")
         self.set_data.setChecked(s.check_data_updates)
+        self.set_data.setToolTip("默认离线使用内置快照。勾选后访问 czgreat/aramhex-data，按 SHA-256 校验；不会连接原作者网站或发送匿名编号。")
         self.set_usage = QCheckBox("帮助改善软件（匿名）")
-        self.set_usage.setChecked(s.send_usage)
-        self.set_usage.setToolTip("开着时：联网时带一个随机编号（和账号、硬件无关），用来统计有多少人在用；\n"
-                                  "排查问题时开发者可能请这台电脑上传运行日志，上传前去掉游戏账号名和电脑用户名。\n"
-                                  "关掉就都不发。")
+        self.set_usage.setChecked(False)
+        self.set_usage.setEnabled(False)
+        self.set_usage.hide()
+        self.set_winrate = QCheckBox("显示胜率数字")
+        self.set_winrate.setChecked(s.show_winrate)
+        self.set_smoothing = QSpinBox()
+        self.set_smoothing.setRange(0, 10000)
+        self.set_smoothing.setSingleStep(100)
+        self.set_smoothing.setValue(s.smoothing_games)
+        self.set_smoothing.setSuffix(" 局")
+        self.set_smoothing.setToolTip("小样本平滑强度，默认 300。越高越保守；0 表示不平滑。原始胜率和局数不变。")
+        self.set_reliable = QSpinBox()
+        self.set_reliable.setRange(100, 100000)
+        self.set_reliable.setSingleStep(100)
+        self.set_reliable.setValue(s.reliable_games)
+        self.set_reliable.setSuffix(" 局")
+        self.set_reliable.setToolTip("首选候选门槛，默认 1000。保留同屏样本相差十倍的保护；全部不足门槛时仍比较，并明确仅供参考。")
 
         g.addWidget(label("游戏语言"), 0, 0)
         g.addWidget(self.set_lang, 0, 1, 1, 2)
@@ -467,32 +508,41 @@ class MainWindow(QMainWindow):
         g.addWidget(self.set_badge, 5, 1)
         g.addWidget(self.set_auto, 6, 1)
         g.addWidget(self.set_data, 7, 1)
-        g.addWidget(self.set_usage, 8, 1)
+        g.addWidget(self.set_winrate, 8, 1)
         g.addWidget(self.badge_preview, 5, 2, 4, 1, Qt.AlignTop | Qt.AlignRight)
 
         # 改了就生效、马上写进设置文件
         for combo in (self.set_lang, self.set_corner, self.set_badge):
             combo.currentIndexChanged.connect(self._settings_edited)
-        for box in (self.set_data, self.set_usage):
+        for box in (self.set_data, self.set_winrate):
             box.toggled.connect(self._settings_edited)
+        for spin in (self.set_smoothing, self.set_reliable):
+            spin.valueChanged.connect(self._settings_edited)
         self.set_auto.toggled.connect(self._autostart_edited)
         self.set_hotkey.keySequenceChanged.connect(self._hotkey_edited)
 
         # 我的水平：和上面的设置项排成一样的一行
-        rrow = QHBoxLayout()
-        self.rank_input = QLineEdit(s.riot_id)
+        self.rank_input = QLineEdit(s.riot_id, w)
+        self.rank_input.setEnabled(False)
+        self.rank_input.hide()
         self.rank_input.setPlaceholderText("名字#编号")
         self.rank_input.returnPressed.connect(self._query_rank)
-        self.btn_rank = QPushButton("查询")
+        self.btn_rank = QPushButton("查询", w)
+        self.btn_rank.setEnabled(False)
+        self.btn_rank.hide()
         self.btn_rank.setMinimumWidth(90)
         self.btn_rank.clicked.connect(self._query_rank)
-        rrow.addWidget(self.rank_input, 1)
-        rrow.addWidget(self.btn_rank)
-        g.addWidget(label("我的水平"), 9, 0)
-        g.addLayout(rrow, 9, 1, 1, 2)
-        self.rank_result = QLabel()
+        g.addWidget(label("平滑强度"), 9, 0)
+        g.addWidget(self.set_smoothing, 9, 1, 1, 2)
+        g.addWidget(label("首选样本门槛"), 10, 0)
+        g.addWidget(self.set_reliable, 10, 1, 1, 2)
+        self.clear_shots = QPushButton("清理截图")
+        self.clear_shots.clicked.connect(self._clear_saved_screenshots)
+        g.addWidget(label("本地存储"), 11, 0)
+        g.addWidget(self.clear_shots, 11, 1, Qt.AlignLeft)
+        self.rank_result = QLabel(w)
+        self.rank_result.hide()
         self.rank_result.setWordWrap(True)
-        g.addWidget(self.rank_result, 10, 1, 1, 2)
         self._show_rank(s.my_rank)
         self._rank_worker = None
         outer.addStretch(1)
@@ -646,7 +696,7 @@ class MainWindow(QMainWindow):
     def _toast(self, text: str) -> None:
         tray = getattr(self, "tray", None)
         if tray:
-            tray.showMessage("海克斯大乱斗助手", text, app_icon(), 6000)
+            tray.showMessage("DD HEX 海克斯助手", text, app_icon(), 6000)
 
     def _notify_tick(self):
         """游戏外才出：攒下的公告/新版本提示、数据已更新的提示、关了自动更新时的「是否更新」。
@@ -728,6 +778,9 @@ class MainWindow(QMainWindow):
         if not hasattr(self, "set_data"):
             return
         pairs = [(self.set_data, lambda w: w.setChecked(s.check_data_updates)),
+                 (self.set_winrate, lambda w: w.setChecked(s.show_winrate)),
+                 (self.set_smoothing, lambda w: w.setValue(s.smoothing_games)),
+                 (self.set_reliable, lambda w: w.setValue(s.reliable_games)),
                  (self.set_corner, lambda w: w.setCurrentIndex(0 if s.overlay_corner == "top-right" else 1)),
                  (self.set_badge, lambda w: w.setCurrentIndex(max(0, w.findData(s.badge_position)))),
                  (self.set_lang, lambda w: w.setCurrentIndex(max(0, w.findData(s.game_lang)))),
@@ -833,8 +886,12 @@ class MainWindow(QMainWindow):
         s = self.engine.settings
         before = {k: getattr(s, k) for k in cloudsettings.SPEC}
         s.check_data_updates = self.set_data.isChecked()
+        recommendation_changed = (s.smoothing_games, s.reliable_games) != (self.set_smoothing.value(), self.set_reliable.value())
+        s.show_winrate = self.set_winrate.isChecked()
+        s.smoothing_games = self.set_smoothing.value()
+        s.reliable_games = self.set_reliable.value()
         usage_changed = s.send_usage != self.set_usage.isChecked()
-        s.send_usage = self.set_usage.isChecked()
+        s.send_usage = False
         cloud.set_install_id(s.install_id if s.send_usage else None)
         try:
             logupload.apply_verbose(s, cloud.get())  # 关了「帮助改善软件」，远程详细日志马上停
@@ -842,6 +899,10 @@ class MainWindow(QMainWindow):
             logging.getLogger(__name__).exception("远程详细日志出错")
         if hasattr(self.engine.store, "check_updates"):
             self.engine.store.check_updates = s.check_data_updates  # 马上生效，不用重开
+        if s.check_data_updates != before.get("check_data_updates"):
+            self.engine.cloud_changed()
+        if recommendation_changed:
+            self.engine._reevaluate()
         s.overlay_corner = "top-right" if self.set_corner.currentIndex() == 0 else "top-left"
         s.badge_position = self.set_badge.currentData() or "top"
         lang = self.set_lang.currentData() or "zh_CN"
@@ -864,6 +925,7 @@ class MainWindow(QMainWindow):
                                     + "、".join(SETTING_NAMES.get(k, k) for k in held))
         self.overlay.panel.corner = s.overlay_corner
         self._write_settings()
+        self.refresh()
 
     def _write_settings(self) -> None:
         """写设置文件；写不进去只提醒一次，免得每改一项弹一次。"""
@@ -883,6 +945,8 @@ class MainWindow(QMainWindow):
         """启动、再次打开助手时各查一次，平时按云控 update.check_minutes 查（默认 3 小时）；
         只提示，用户点了「立即更新」才下载安装。正在查或正在下载时跳过。
         manual=True 是设置页「检查更新」按钮：结果（最新 / 有新版本 / 失败）都弹窗告诉用户。"""
+        if not manual and not update.enabled():
+            return
         if self._worker and self._worker.isRunning():
             if manual:
                 QMessageBox.information(self, "检查更新", "正在检查或下载更新，请稍候。")
@@ -897,7 +961,8 @@ class MainWindow(QMainWindow):
             self.btn_check.setText("检查中…")
             self._worker.data_done.connect(lambda m: setattr(self, "_data_msg", m))
             self._worker.uptodate.connect(lambda: QMessageBox.information(
-                self, "检查更新", f"软件已是最新版本（{__version__}）。" + self._data_line()))
+                self, "检查更新", (f"软件已是最新版本（{__version__}）。" if update.enabled()
+                                    else "未配置独立软件更新源，未检查软件版本。") + self._data_line()))
             self._worker.failed.connect(self._check_failed)
             self._worker.finished.connect(lambda: (self.btn_check.setEnabled(True),
                                                    self.btn_check.setText("检查更新")))
@@ -907,6 +972,8 @@ class MainWindow(QMainWindow):
     def _sync_data_now(self) -> str:
         """「检查更新」按钮：马上查统计数据（不管自动更新开关）和官方资料，返回结果。"""
         st = self.engine.store
+        if not self.engine.settings.check_data_updates:
+            return "统计更新已关闭，正在使用内置或已下载的快照。"
         changed = st.sync_data(force=True, manual=True)
         if changed:  # 结果在「检查更新」的对话框里说了，右下角不再提示一遍
             self._shown_note = (getattr(st, "data_note", None) or {}).get("id")
@@ -981,7 +1048,9 @@ class MainWindow(QMainWindow):
             return
         # 源码运行、又没有安装包地址：只能打开下载页
         if patch.install_root() is None and (is_portable() or not self._update_info.get("url")):
-            webbrowser.open(cloud.site())
+            page = self._update_info.get("page") or update.download_page()
+            if page:
+                webbrowser.open(page)
             return
         if self._busy():
             # 选英雄时也不更新：重启那几十秒正好错过选英雄界面，这局就认不出英雄（10-29 日志：1.1.2→1.1.3 更新后 48 局）
@@ -1010,7 +1079,7 @@ class MainWindow(QMainWindow):
         show_progress(self.update_progress, "下载完成，正在重启助手…", 1, 1)
         root = patch.install_root()
         try:
-            patch.launch_apply(root, changed, stale, self._update_info["version"], relaunch=str(root / "AramHex.exe"))
+            patch.launch_apply(root, changed, stale, self._update_info["version"], relaunch=str(root / "DD HEX.exe"))
         except OSError as e:
             return self._update_failed(str(e))
         self.tray.quit()  # 退出让出文件；替换完自动重新打开
@@ -1132,7 +1201,8 @@ class MainWindow(QMainWindow):
         self._set_candidates(snap.get("candidates") or [])
 
         key = (hid, d.get("date"), d.get("data_revision"), d.get("official_revision"),
-               d.get("official_origin"), self.engine.icons.version, dd.get("band_effective"), show_win) if d else None
+               d.get("official_origin"), self.engine.icons.version, dd.get("band_effective"), show_win,
+               self.engine.settings.smoothing_games) if d else None
         if d and self._panel_hero != key:
             self._panel_hero = key
             self.tab_hero.setText(self._hero_html(d, show_win))
@@ -1163,7 +1233,7 @@ class MainWindow(QMainWindow):
                 lab.setText("")
             return
         waiting = any(pending or ())
-        pk = recommend.pentakill_text(ev.get("pentakill")) if not waiting else ""
+        pk = recommend.pentakill_text(ev.get("pentakill"), show_win=show_win) if not waiting else ""
         advice = "卡片更新中，等待识别确认" if waiting else ev['advice']
         self.offer_advice.setText(f"<b style='font-size:15px'>{advice}</b>"
                                   + (f"<br><span style='color:#c9a0ff'>{escape(pk)}</span>" if pk else ""))
@@ -1185,7 +1255,8 @@ class MainWindow(QMainWindow):
                 note = recommend.NEW_NOTE if r.get("basis") == "new" else recommend.NODATA_NOTE
                 lines.append(f"<span style='color:#777'>{note}</span>")
             if r.get("basis") == "pbe":
-                pbe = f"测试服 {r['pbe_games']} 局 · 胜率 {_pct(r['pbe_win'])}，" if r.get("pbe_games") else ""
+                pbe = (f"测试服 {r['pbe_games']} 局" + (f" · 胜率 {_pct(r['pbe_win'])}" if show_win else "") + "，"
+                       if r.get("pbe_games") else "")
                 lines.append(f"<span style='color:#777'>{pbe}{recommend.PBE_NOTE}</span>")
             if r.get("score") is not None:
                 s = f"{r['score']:+.1f}"
@@ -1195,7 +1266,10 @@ class MainWindow(QMainWindow):
                     warn = "⚠ 样本太少" if r.get("thin") == "too_few" else "样本偏少"
                     s += f" · <span style='color:#ff7a6b'>{warn}</span>"
                 lines.append(s)
+            if r.get("games") is not None:
+                lines.append(f"<span style='color:#777'>样本 {r['games']} 局</span>")
             lab.setText("<br>".join(lines))
+            lab.setToolTip("\n".join(r.get("reasons") or []) if show_win else "")
 
     # ---------- 窗口行为 ----------
 
@@ -1221,7 +1295,7 @@ class MainWindow(QMainWindow):
             self._hint_shown = True
             tray = getattr(self, "tray", None)
             if tray:
-                tray.showMessage("海克斯大乱斗助手", "助手仍在后台运行，右下角托盘图标可以重新打开或退出。",
+                tray.showMessage("DD HEX 海克斯助手", "助手仍在后台运行，右下角托盘图标可以重新打开或退出。",
                                  app_icon(), 4000)
 
 
@@ -1229,7 +1303,7 @@ class Tray(QSystemTrayIcon):
     def __init__(self, engine, window: MainWindow, overlay):
         super().__init__(app_icon())
         self.engine, self.window, self.overlay = engine, window, overlay
-        self.setToolTip(f"海克斯大乱斗助手 v{__version__}")
+        self.setToolTip(f"DD HEX 海克斯助手 v{__version__}")
         m = QMenu()
         m.addAction("打开主界面", window.show_and_raise)
         self.act_overlay = QAction("显示游戏浮窗", m, checkable=True)
@@ -1265,7 +1339,7 @@ class Tray(QSystemTrayIcon):
             self.act_overlay.blockSignals(True)
             self.act_overlay.setChecked(s.overlay)
             self.act_overlay.blockSignals(False)
-            self.showMessage("海克斯大乱斗助手", "浮窗现在按官方临时设置，撤掉后改回你选的", app_icon(), 6000)
+            self.showMessage("DD HEX 海克斯助手", "浮窗现在按官方临时设置，撤掉后改回你选的", app_icon(), 6000)
 
     def _toggle_auto(self, on: bool):
         try:
@@ -1276,7 +1350,7 @@ class Tray(QSystemTrayIcon):
     def _tooltip(self):
         s = self.engine.snapshot()
         h = s.get("hero")
-        self.setToolTip(f"海克斯大乱斗助手 v{__version__}\n" + PHASE_CN.get(s.get("phase"), "") +
+        self.setToolTip(f"DD HEX 海克斯助手 v{__version__}\n" + PHASE_CN.get(s.get("phase"), "") +
                         (f"\n英雄：{h['name']}" if h else ""))
 
     def quit(self):

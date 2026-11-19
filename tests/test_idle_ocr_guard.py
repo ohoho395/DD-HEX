@@ -160,7 +160,8 @@ def test_legacy_config_and_calibration_are_preserved(tmp_path):
     settings.idle_ocr_guard = True
     assert settings.save(config)
     saved = json.loads(config.read_text(encoding="utf-8"))
-    assert all(saved[key] == value for key, value in old.items())
+    assert all(saved[key] == value for key, value in old.items() if key != "install_id")
+    assert saved["install_id"] == "" and saved["send_usage"] is False
     assert Settings.load(config).idle_ocr_guard is False  # 1.1.7 起设置页没有开关：存过的也改回关闭
     calibration = tmp_path / "calibration.json"
     calibration.write_text(json.dumps({"boxes": Calibration.default(1920, 1080).boxes,

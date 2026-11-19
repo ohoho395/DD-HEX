@@ -329,7 +329,7 @@ class BadgeLayer(_Layer):
             if r.get("basis") == "tier_only":
                 meta.append("按官方层级")
             if r.get("basis") == "pbe" and r.get("pbe_games"):  # 新海克斯先用测试服数据：直接给局数和胜率，看得出高低
-                meta.append(f"测试服 {r['pbe_games']} 局 胜率{_pct(r['pbe_win'])}")
+                meta.append(f"测试服 {r['pbe_games']} 局" + (f" 胜率{_pct(r['pbe_win'])}" if show_win else ""))
             if r.get("thin") == "few" or r.get("sample_warning") and r.get("thin") != "too_few":
                 meta.insert(0, "样本偏少")
             if not ev.get("hero_id"):  # 只在浮窗里写的话进游戏 5 秒就收起，玩家常常不知道是按全英雄算的
@@ -450,7 +450,8 @@ class BadgeLayer(_Layer):
             text_x = x + size + 6
             text_w = x + width - text_x
             stat = self._item_hint_stat(row, hint, show_win)
-            stat_w = min(fm.horizontalAdvance(stat), text_w)
+            # Qt may round glyph advances differently when eliding on high DPI.
+            stat_w = min(fm.horizontalAdvance(stat) + 2, text_w)
             p.setPen(QColor(240, 240, 245))
             name_w = max(0, text_w - stat_w - 12)
             p.drawText(QRect(text_x, y + 2, name_w, 18), Qt.AlignLeft,
@@ -678,7 +679,7 @@ class ControlPanel(QWidget):
         self.btn = QPushButton()
         self.btn.setIcon(app_icon())
         self.btn.setIconSize(QSize(30, 30))
-        self.btn.setToolTip("海克斯大乱斗助手：点击展开/收起")
+        self.btn.setToolTip("DD HEX：点击展开/收起")
         self.btn.setFixedSize(40, 40)
         self.btn.setCursor(Qt.PointingHandCursor)
         self.btn.setStyleSheet(self.BTN_STYLE % 20)
@@ -1117,7 +1118,7 @@ class ControlPanel(QWidget):
             waiting = any((snap.get("offer") or {}).get("pending_columns") or ())
             advice = "卡片更新中，等待识别确认" if waiting else ev['advice']
             parts.append(f"<b>{advice}</b>")
-            pk = recommend.pentakill_text(ev.get("pentakill")) if not waiting else ""
+            pk = recommend.pentakill_text(ev.get("pentakill"), show_win=show_win) if not waiting else ""
             if pk:
                 parts.append(f"<span style='color:#c9a0ff'>{escape(pk)}</span>")
         if d:
@@ -1231,7 +1232,7 @@ class Overlay:
         self.panel.place(rect, in_client=grect is None)
 
 
-SINGLE_INSTANCE = "aramhex-single-instance"
+SINGLE_INSTANCE = "ddhex-single-instance"
 
 
 def version_notice(settings) -> str | None:
@@ -1257,7 +1258,11 @@ def run(make_engine, minimized: bool = False) -> int:
 
     app = QApplication.instance() or QApplication(sys.argv)
     app.setQuitOnLastWindowClosed(False)
-    app.setApplicationName("海克斯大乱斗助手")
+    app.setApplicationName("DD HEX")
+    app.setOrganizationName("DD HEX")
+    if sys.platform == "win32":
+        import ctypes
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("DDHEX.Desktop")
     app.setWindowIcon(app_icon())
     # 界面颜色是按浅色配的（卡片底色、灰字写死）：不跟随 Windows 深色模式，否则白字压在浅色卡片上看不见
     app.styleHints().setColorScheme(Qt.ColorScheme.Light)
@@ -1282,7 +1287,7 @@ def run(make_engine, minimized: bool = False) -> int:
             return 0
         if single_instance.denied:  # 通知不到以管理员身份运行的那个：告诉玩家它在哪，不再起第二个
             from PySide6.QtWidgets import QMessageBox
-            QMessageBox.information(None, "海克斯大乱斗助手",
+            QMessageBox.information(None, "DD HEX 海克斯助手",
                                     "助手已经在运行（是以管理员身份打开的），请在屏幕右下角托盘里找它。\n"
                                     "想换成普通方式打开，先在托盘图标上右键退出它。")
             return 0
@@ -1316,8 +1321,8 @@ def run(make_engine, minimized: bool = False) -> int:
     server.newConnection.connect(on_second_instance)
     note = version_notice(engine.settings)
     if note:
-        tray.showMessage("海克斯大乱斗助手", note, app_icon(), 8000)
-    ov.notify = lambda text: tray.showMessage("海克斯大乱斗助手", text, app_icon(), 12000)
+        tray.showMessage("DD HEX 海克斯助手", note, app_icon(), 8000)
+    ov.notify = lambda text: tray.showMessage("DD HEX 海克斯助手", text, app_icon(), 12000)
     if not engine.settings.seen_welcome:
         def welcome():
             engine.settings.seen_welcome = True
@@ -1330,7 +1335,7 @@ def run(make_engine, minimized: bool = False) -> int:
     if failed:
         incomplete = patch.rollback_incomplete()
         log.warning("上次更新没装上%s：%s", "，旧文件没有全部还原" if incomplete else "", failed)
-        tray.showMessage("海克斯大乱斗助手",
+        tray.showMessage("DD HEX 海克斯助手",
                          "上次更新没有装上，也没能完全恢复原版本。请到官网重新下载安装。" if incomplete
                          else "上次更新没有装上，已恢复原版本。打开主界面点「立即更新」再试一次。",
                          app_icon(), 10000)

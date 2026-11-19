@@ -21,6 +21,8 @@ def test_rank_and_update_workers_are_deleted_after_finishing(store, tmp_path, mo
 
     monkeypatch.setattr(mainwindow.RankWorker, "run", lambda self: None)
     monkeypatch.setattr(mainwindow.UpdateWorker, "run", lambda self: None)
+    # Exercise deletion for a configured independent updater.
+    monkeypatch.setattr(mainwindow.update, "enabled", lambda: True)
     QApplication.instance() or QApplication([])
     engine = Engine(Settings(), home=tmp_path, store=store)
     window = mainwindow.MainWindow(engine, SimpleNamespace(set_visible=lambda *args: None))

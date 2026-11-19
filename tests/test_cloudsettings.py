@@ -53,13 +53,13 @@ def test_versions_percent_and_bad_values(tmp_path):
     res = cloudsettings.apply(s, cfg({"defaults": bad}), V)
     assert sorted(res["changed"]) == ["overlay_corner", "smoothing_games"]
     assert s.smoothing_games == 500 and s.overlay_corner == "top-left"
-    assert s.install_id != "ffffffffffffffff" and s.send_usage is True and s.riot_id == ""
+    assert s.install_id != "ffffffffffffffff" and s.send_usage is False and s.riot_id == ""
 
 
 def test_percent_groups_by_install_id(tmp_path):
     hit = 0
     for i in range(200):
-        s = Settings(install_id=f"{i:016x}")
+        s = Settings(install_id=f"{i:016x}", send_usage=True)
         cloudsettings.apply(s, cfg({"id": "half", "percent": 50, "defaults": {"speed": "saver"}}), V)
         hit += s.speed == "saver"
     assert 60 < hit < 140
@@ -120,7 +120,7 @@ def test_machine_conditions_pick_only_matching_computers():
 
 def test_conditions_in_old_settings_are_skipped():
     """1.1.8 及以前不认条件、会对所有电脑生效，所以条件只能写在 settings_v2；写在 settings 里本版也不执行。"""
-    s = Settings(install_id="0123456789abcdef")
+    s = Settings(install_id="0123456789abcdef", send_usage=True)
     cloudsettings.apply(s, cfg({"id": "old", "versions": ["1.1.9"], "os": ["10"], "hybrid": True, **PRIO}), "1.1.9", W10_HYBRID)
     assert s.vision_priority == "below_normal"
     cloudsettings.apply(s, cfg({"id": "old-plain", **PRIO}), "1.1.9", W10_HYBRID)  # 老格式照旧
@@ -159,7 +159,7 @@ def test_no_id_computers_only_join_full_percent():
 
 def test_v2_rule_without_versions_is_skipped():
     """条件规则漏写 versions 会对以后所有版本生效：整条跳过，不当成「所有版本」。"""
-    s = Settings(install_id="0123456789abcdef")
+    s = Settings(install_id="0123456789abcdef", send_usage=True)
     for rule in ({"id": "no-ver", "os": ["10"], "hybrid": True}, {"id": "no-ver-ids", "ids": ["0123456789abcdef"]},
                  {"id": "no-ver-plain"}):
         cloudsettings.apply(s, v2({**rule, **PRIO}), "1.1.9", W10_HYBRID)
@@ -179,7 +179,7 @@ def test_unknown_keys_skip_rule_but_underscore_is_comment():
 def test_conditions_then_percent_split_within_group():
     hit = 0
     for i in range(200):
-        s = Settings(install_id=f"{i:016x}")
+        s = Settings(install_id=f"{i:016x}", send_usage=True)
         cloudsettings.apply(s, v2({"id": "w10-half", **V9, "os": ["10"], "hybrid": True, "percent": 50, **PRIO}), "1.1.9", W10_HYBRID)
         hit += s.vision_priority == "normal"
     assert 60 < hit < 140
@@ -189,7 +189,7 @@ def test_conditions_then_percent_split_within_group():
 
 
 def test_removing_conditional_force_restores():
-    s = Settings(install_id="0123456789abcdef")
+    s = Settings(install_id="0123456789abcdef", send_usage=True)
     cloudsettings.apply(s, v2({"id": "w10", **V9, "os": ["10"], "hybrid": True, **PRIO}), "1.1.9", W10_HYBRID)
     assert s.vision_priority == "normal"
     res = cloudsettings.apply(s, v2(), "1.1.9", W10_HYBRID)
@@ -200,7 +200,7 @@ def test_machine_read_only_when_a_rule_needs_it(monkeypatch):
     from lolhex import diagnostics
     calls = []
     monkeypatch.setattr(diagnostics, "machine", lambda: calls.append(1) or W10_HYBRID)
-    s = Settings(install_id="0123456789abcdef")
+    s = Settings(install_id="0123456789abcdef", send_usage=True)
     cloudsettings.apply(s, cfg({"id": "plain", **PRIO}), "1.1.9")
     cloudsettings.apply(s, v2({"id": "ids", **V9, "ids": ["0123456789abcdef"], **PRIO}), "1.1.9")
     assert calls == [] and s.vision_priority == "normal"

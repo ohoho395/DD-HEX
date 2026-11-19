@@ -21,6 +21,10 @@ datas += [("../lolhex/data/static_bundled.json", "lolhex/data")]  # 腾讯官方
 datas += [("../lolhex/data/hero_bundled.json", "lolhex/data")]  # 单英雄官方出装、加点兜底（同上）
 datas += [("../lolhex/data/item_icons.json", "lolhex/data")]  # 装备、召唤师技能图标兜底（同上）
 datas += [("../lolhex/data/cacert.pem", "lolhex/data")]  # 根证书（去掉 eMudhra，scripts/make_cacert.py）
+# Legal files are included even when a maintainer invokes the spec directly.
+for notice in ("LICENSE", "NOTICE.md", "PRIVACY.md", "README.md", "DATA-LICENSE-CC-BY-NC-4.0.txt"):
+    datas.append((f"../{notice}", "."))
+datas += [("../THIRD_PARTY_LICENSES", "THIRD_PARTY_LICENSES"), ("../docs/WINDOWS.md", "docs")]
 binaries = collect_dynamic_libs("onnxruntime")
 
 a = Analysis(
@@ -56,9 +60,9 @@ pyz = PYZ(a.pure)
 exe = EXE(
     pyz, a.scripts, [],
     exclude_binaries=True,
-    name="AramHex",
+    name="DD HEX",
     console=False,
     icon="lolhex.ico",
     version=None,
 )
-coll = COLLECT(exe, a.binaries, a.datas, name="AramHex")
+coll = COLLECT(exe, a.binaries, a.datas, name="DD HEX")

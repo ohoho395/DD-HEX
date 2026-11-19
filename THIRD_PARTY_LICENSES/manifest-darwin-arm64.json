@@ -1,0 +1,1087 @@
+{
+  "schema_version": 1,
+  "python": "3.13.13",
+  "platform": "darwin",
+  "machine": "arm64",
+  "scope": "Installed build environment; may include build/test-only packages. Retained files may come from other platforms. See README.md and per-platform manifests.",
+  "packages": [
+    {
+      "name": "certifi",
+      "version": "2026.10.23",
+      "license_expression": null,
+      "license_metadata": "MPL-2.0",
+      "project_urls": [
+        "Source, https://github.com/certifi/python-certifi"
+      ],
+      "files": [
+        {
+          "installed_path": "certifi-2026.10.23.dist-info/licenses/LICENSE",
+          "destination": "certifi/2026.10.23/certifi-2026.10.23.dist-info/licenses/LICENSE",
+          "sha256": "e93716da6b9c0d5a4a1df60fe695b370f0695603d21f6f83f053e42cfc10caf7",
+          "bytes": 989
+        }
+      ],
+      "models": [],
+      "model_metadata": [],
+      "wheel_notices_found": true
+    },
+    {
+      "name": "charset-normalizer",
+      "version": "3.5.2",
+      "license_expression": null,
+      "license_metadata": "MIT",
+      "project_urls": [
+        "Changelog, https://github.com/jawah/charset_normalizer/blob/master/CHANGELOG.md",
+        "Documentation, https://charset-normalizer.readthedocs.io/",
+        "Code, https://github.com/jawah/charset_normalizer",
+        "Issue tracker, https://github.com/jawah/charset_normalizer/issues"
+      ],
+      "files": [
+        {
+          "installed_path": "charset_normalizer-3.5.2.dist-info/licenses/LICENSE",
+          "destination": "charset-normalizer/3.5.2/charset_normalizer-3.5.2.dist-info/licenses/LICENSE",
+          "sha256": "6d0d41bfe170ac6c7dc248c9a63e254d0fb45a60d50a8257d0af92c6e249b887",
+          "bytes": 1071
+        }
+      ],
+      "models": [],
+      "model_metadata": [],
+      "wheel_notices_found": true
+    },
+    {
+      "name": "colorlog",
+      "version": "6.12.0",
+      "license_expression": null,
+      "license_metadata": "MIT License",
+      "project_urls": [],
+      "files": [
+        {
+          "installed_path": "colorlog-6.12.0.dist-info/licenses/LICENSE",
+          "destination": "colorlog/6.12.0/colorlog-6.12.0.dist-info/licenses/LICENSE",
+          "sha256": "b1d9082bc483623fd59fc7279b457f0e40d942a76426cde257239e04dfe4125a",
+          "bytes": 1107
+        }
+      ],
+      "models": [],
+      "model_metadata": [],
+      "wheel_notices_found": true
+    },
+    {
+      "name": "flatbuffers",
+      "version": "25.12.19",
+      "license_expression": null,
+      "license_metadata": "Apache 2.0",
+      "project_urls": [
+        "Documentation, https://google.github.io/flatbuffers/",
+        "Source, https://github.com/google/flatbuffers"
+      ],
+      "files": [],
+      "models": [],
+      "model_metadata": [],
+      "wheel_notices_found": false
+    },
+    {
+      "name": "idna",
+      "version": "3.20",
+      "license_expression": "BSD-3-Clause",
+      "license_metadata": null,
+      "project_urls": [
+        "Changelog, https://github.com/kjd/idna/blob/master/HISTORY.md",
+        "Issue tracker, https://github.com/kjd/idna/issues",
+        "Source, https://github.com/kjd/idna"
+      ],
+      "files": [
+        {
+          "installed_path": "idna-3.20.dist-info/licenses/LICENSE.md",
+          "destination": "idna/3.20/idna-3.20.dist-info/licenses/LICENSE.md",
+          "sha256": "1a9a4f0e3d479a27240ddd59a9137a66ab4a0f9dfdc8ca6188cc0bfd85187f04",
+          "bytes": 1541
+        }
+      ],
+      "models": [],
+      "model_metadata": [],
+      "wheel_notices_found": true
+    },
+    {
+      "name": "iniconfig",
+      "version": "2.3.1",
+      "license_expression": "MIT",
+      "license_metadata": null,
+      "project_urls": [
+        "Homepage, https://github.com/pytest-dev/iniconfig"
+      ],
+      "files": [
+        {
+          "installed_path": "iniconfig-2.3.1.dist-info/licenses/LICENSE",
+          "destination": "iniconfig/2.3.1/iniconfig-2.3.1.dist-info/licenses/LICENSE",
+          "sha256": "3409fa91f7ace557894632676656e32264fe5ef7581535725dc9a23774551bd4",
+          "bytes": 1098
+        }
+      ],
+      "models": [],
+      "model_metadata": [],
+      "wheel_notices_found": true
+    },
+    {
+      "name": "mss",
+      "version": "10.2.0",
+      "license_expression": null,
+      "license_metadata": "MIT License\nCopyright (c) 2013-2026, Mickaël 'Tiger-222' Schoentgen\n\nPermission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the \"Software\"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.",
+      "project_urls": [
+        "Homepage, https://github.com/BoboTiG/python-mss",
+        "Documentation, https://python-mss.readthedocs.io",
+        "Changelog, https://python-mss.readthedocs.io/latest/history.html",
+        "Source, https://github.com/BoboTiG/python-mss",
+        "Sponsor, https://github.com/sponsors/BoboTiG",
+        "Tracker, https://github.com/BoboTiG/python-mss/issues",
+        "Released Versions, https://github.com/BoboTiG/python-mss/releases"
+      ],
+      "files": [
+        {
+          "installed_path": "mss-10.2.0.dist-info/licenses/LICENSE.txt",
+          "destination": "mss/10.2.0/mss-10.2.0.dist-info/licenses/LICENSE.txt",
+          "sha256": "479b38354134f96c0b5f84e5449ae3497c1c585594bcca48a1164e8b819c8c38",
+          "bytes": 1093
+        }
+      ],
+      "models": [],
+      "model_metadata": [],
+      "wheel_notices_found": true
+    },
+    {
+      "name": "numpy",
+      "version": "2.5.3",
+      "license_expression": "BSD-3-Clause AND 0BSD AND MIT AND Zlib AND CC0-1.0",
+      "license_metadata": null,
+      "project_urls": [
+        "homepage, https://numpy.org",
+        "documentation, https://numpy.org/doc/",
+        "source, https://github.com/numpy/numpy",
+        "download, https://pypi.org/project/numpy/#files",
+        "tracker, https://github.com/numpy/numpy/issues",
+        "release notes, https://numpy.org/doc/stable/release"
+      ],
+      "files": [
+        {
+          "installed_path": "numpy-2.5.3.dist-info/licenses/LICENSE.txt",
+          "destination": "numpy/2.5.3/numpy-2.5.3.dist-info/licenses/LICENSE.txt",
+          "sha256": "649a589ab31076e79e9ce62ba24eae9959598124176640dbc95f87bd10f34fcf",
+          "bytes": 46826
+        },
+        {
+          "installed_path": "numpy-2.5.3.dist-info/licenses/numpy/_core/include/numpy/libdivide/LICENSE.txt",
+          "destination": "numpy/2.5.3/numpy-2.5.3.dist-info/licenses/numpy/_core/include/numpy/libdivide/LICENSE.txt",
+          "sha256": "fbc539f47d0cf83bc61378080fb873d5c14630126cacbfe754035c3926daa5ec",
+          "bytes": 1018
+        },
+        {
+          "installed_path": "numpy-2.5.3.dist-info/licenses/numpy/_core/src/common/pythoncapi-compat/COPYING",
+          "destination": "numpy/2.5.3/numpy-2.5.3.dist-info/licenses/numpy/_core/src/common/pythoncapi-compat/COPYING",
+          "sha256": "3f2c1ffa76383a55ae0aac01c9737cd70050dff63e1f026694fbe9d662573c98",
+          "bytes": 690
+        },
+        {
+          "installed_path": "numpy-2.5.3.dist-info/licenses/numpy/_core/src/highway/LICENSE",
+          "destination": "numpy/2.5.3/numpy-2.5.3.dist-info/licenses/numpy/_core/src/highway/LICENSE",
+          "sha256": "e340270d4f64384569a91d546acb5b094d69ce47f0c015db77abb74dc6f815af",
+          "bytes": 20785
+        },
+        {
+          "installed_path": "numpy-2.5.3.dist-info/licenses/numpy/_core/src/multiarray/dragon4_LICENSE.txt",
+          "destination": "numpy/2.5.3/numpy-2.5.3.dist-info/licenses/numpy/_core/src/multiarray/dragon4_LICENSE.txt",
+          "sha256": "f7b14309e5f54e5022b26448eefd419988ada2aec01d3c1162d84a0ea8f21f2c",
+          "bytes": 1414
+        },
+        {
+          "installed_path": "numpy-2.5.3.dist-info/licenses/numpy/_core/src/npysort/x86-simd-sort/LICENSE.md",
+          "destination": "numpy/2.5.3/numpy-2.5.3.dist-info/licenses/numpy/_core/src/npysort/x86-simd-sort/LICENSE.md",
+          "sha256": "211e7d737d6179a08f791ebb0a99897ce7cd2457410c542876d125576edfe910",
+          "bytes": 1514
+        },
+        {
+          "installed_path": "numpy-2.5.3.dist-info/licenses/numpy/_core/src/umath/svml/LICENSE",
+          "destination": "numpy/2.5.3/numpy-2.5.3.dist-info/licenses/numpy/_core/src/umath/svml/LICENSE",
+          "sha256": "c17011467b4fe6e20fbfbeda4df09e58c2bca5480a063e55735a4000a379aad9",
+          "bytes": 1543
+        },
+        {
+          "installed_path": "numpy-2.5.3.dist-info/licenses/numpy/fft/pocketfft/LICENSE.md",
+          "destination": "numpy/2.5.3/numpy-2.5.3.dist-info/licenses/numpy/fft/pocketfft/LICENSE.md",
+          "sha256": "a85ca13fdf90160b64a0698215868c13b74d835ad0a4e2ba44713b8c5058a056",
+          "bytes": 1498
+        },
+        {
+          "installed_path": "numpy-2.5.3.dist-info/licenses/numpy/linalg/lapack_lite/LICENSE.txt",
+          "destination": "numpy/2.5.3/numpy-2.5.3.dist-info/licenses/numpy/linalg/lapack_lite/LICENSE.txt",
+          "sha256": "a14cc25e10d40a3aa705b7de2fb764a6535d8ee9b2db4e1724900585457dfd55",
+          "bytes": 2266
+        },
+        {
+          "installed_path": "numpy-2.5.3.dist-info/licenses/numpy/ma/LICENSE",
+          "destination": "numpy/2.5.3/numpy-2.5.3.dist-info/licenses/numpy/ma/LICENSE",
+          "sha256": "05f3b88351988ecfad10abe92c0c50e5875c6452d5009a0084cc291551ffcca6",
+          "bytes": 1593
+        },
+        {
+          "installed_path": "numpy-2.5.3.dist-info/licenses/numpy/random/LICENSE.md",
+          "destination": "numpy/2.5.3/numpy-2.5.3.dist-info/licenses/numpy/random/LICENSE.md",
+          "sha256": "103166b62b80443afb9eb3488e052ea06be0cff566b908f199e561fde49af19f",
+          "bytes": 3511
+        },
+        {
+          "installed_path": "numpy-2.5.3.dist-info/licenses/numpy/random/src/distributions/LICENSE.md",
+          "destination": "numpy/2.5.3/numpy-2.5.3.dist-info/licenses/numpy/random/src/distributions/LICENSE.md",
+          "sha256": "469778be8f33d54e1bcaab28c281cc472916d2d273f835e55bc487d30503face",
+          "bytes": 2745
+        },
+        {
+          "installed_path": "numpy-2.5.3.dist-info/licenses/numpy/random/src/mt19937/LICENSE.md",
+          "destination": "numpy/2.5.3/numpy-2.5.3.dist-info/licenses/numpy/random/src/mt19937/LICENSE.md",
+          "sha256": "0e111337b25494a773106695f0e799f642b8567aaacca4f116a74a8177179156",
+          "bytes": 2926
+        },
+        {
+          "installed_path": "numpy-2.5.3.dist-info/licenses/numpy/random/src/pcg64/LICENSE.md",
+          "destination": "numpy/2.5.3/numpy-2.5.3.dist-info/licenses/numpy/random/src/pcg64/LICENSE.md",
+          "sha256": "e7d4f4fb20358f314210a892ae17351e04993813646f697ec387385ca2a36918",
+          "bytes": 1154
+        },
+        {
+          "installed_path": "numpy-2.5.3.dist-info/licenses/numpy/random/src/philox/LICENSE.md",
+          "destination": "numpy/2.5.3/numpy-2.5.3.dist-info/licenses/numpy/random/src/philox/LICENSE.md",
+          "sha256": "6f5828a57223d4cc7f8ea505a2623e7b978b242752c1515e355f46ba2cec1800",
+          "bytes": 1509
+        },
+        {
+          "installed_path": "numpy-2.5.3.dist-info/licenses/numpy/random/src/sfc64/LICENSE.md",
+          "destination": "numpy/2.5.3/numpy-2.5.3.dist-info/licenses/numpy/random/src/sfc64/LICENSE.md",
+          "sha256": "9d4098846018319cd68e228ee6220361787f73bccbf00237a85e4fc9621b998f",
+          "bytes": 1226
+        },
+        {
+          "installed_path": "numpy-2.5.3.dist-info/licenses/numpy/random/src/splitmix64/LICENSE.md",
+          "destination": "numpy/2.5.3/numpy-2.5.3.dist-info/licenses/numpy/random/src/splitmix64/LICENSE.md",
+          "sha256": "268b0ca06759d31ea3ca68dd35f20e877916e927b1c2a835e4592a3c4354b1f9",
+          "bytes": 332
+        },
+        {
+          "installed_path": "numpy/_core/include/numpy/random/LICENSE.txt",
+          "destination": "numpy/2.5.3/numpy/_core/include/numpy/random/LICENSE.txt",
+          "sha256": "fbc539f47d0cf83bc61378080fb873d5c14630126cacbfe754035c3926daa5ec",
+          "bytes": 1018
+        },
+        {
+          "installed_path": "numpy/ma/LICENSE",
+          "destination": "numpy/2.5.3/numpy/ma/LICENSE",
+          "sha256": "05f3b88351988ecfad10abe92c0c50e5875c6452d5009a0084cc291551ffcca6",
+          "bytes": 1593
+        },
+        {
+          "installed_path": "numpy/random/LICENSE.md",
+          "destination": "numpy/2.5.3/numpy/random/LICENSE.md",
+          "sha256": "103166b62b80443afb9eb3488e052ea06be0cff566b908f199e561fde49af19f",
+          "bytes": 3511
+        }
+      ],
+      "models": [],
+      "model_metadata": [],
+      "wheel_notices_found": true
+    },
+    {
+      "name": "omegaconf",
+      "version": "2.4.0",
+      "license_expression": null,
+      "license_metadata": null,
+      "project_urls": [],
+      "files": [
+        {
+          "installed_path": "omegaconf-2.4.0.dist-info/licenses/ATTRIBUTION/LICENSE-antlr4",
+          "destination": "omegaconf/2.4.0/omegaconf-2.4.0.dist-info/licenses/ATTRIBUTION/LICENSE-antlr4",
+          "sha256": "3db1fb3ee79a4b4f9918fc4d0f6133bf18a3cf787f126cd22f8aa9b862281c0c",
+          "bytes": 1480
+        },
+        {
+          "installed_path": "omegaconf-2.4.0.dist-info/licenses/LICENSE",
+          "destination": "omegaconf/2.4.0/omegaconf-2.4.0.dist-info/licenses/LICENSE",
+          "sha256": "b31375ed5d5cbe7ec2d0c4c14df8afa7a8e5501bbe25f70b6cbc461685f4b91a",
+          "bytes": 1518
+        }
+      ],
+      "models": [],
+      "model_metadata": [],
+      "wheel_notices_found": true
+    },
+    {
+      "name": "onnxruntime",
+      "version": "1.30.0",
+      "license_expression": null,
+      "license_metadata": "MIT License",
+      "project_urls": [],
+      "files": [
+        {
+          "installed_path": "onnxruntime/LICENSE",
+          "destination": "onnxruntime/1.30.0/onnxruntime/LICENSE",
+          "sha256": "2f07c72751aed99790b8a4869cf2311df85a860b22ded05fa22803587a48922c",
+          "bytes": 1073
+        },
+        {
+          "installed_path": "onnxruntime/ThirdPartyNotices.txt",
+          "destination": "onnxruntime/1.30.0/onnxruntime/ThirdPartyNotices.txt",
+          "sha256": "143764b952fdb1a7c69ce653bfba74a7744d6a8a573bfb73e235fba356c83de3",
+          "bytes": 338088
+        }
+      ],
+      "models": [],
+      "model_metadata": [],
+      "wheel_notices_found": true
+    },
+    {
+      "name": "opencv-python",
+      "version": "5.0.0.93",
+      "license_expression": null,
+      "license_metadata": "Apache 2.0",
+      "project_urls": [],
+      "files": [
+        {
+          "installed_path": "cv2/LICENSE-3RD-PARTY.txt",
+          "destination": "opencv-python/5.0.0.93/cv2/LICENSE-3RD-PARTY.txt",
+          "sha256": "2537f5653345db7231ff12f307bcfa4c89807d45ed1c4bb8ebfb6f26f61b160a",
+          "bytes": 179634
+        },
+        {
+          "installed_path": "cv2/LICENSE.txt",
+          "destination": "opencv-python/5.0.0.93/cv2/LICENSE.txt",
+          "sha256": "09d719058e782ac7bc71ba21c944e1136cde2bb957c0e888121f0218d6b5f02c",
+          "bytes": 1070
+        },
+        {
+          "installed_path": "opencv_python-5.0.0.93.dist-info/LICENSE-3RD-PARTY.txt",
+          "destination": "opencv-python/5.0.0.93/opencv_python-5.0.0.93.dist-info/LICENSE-3RD-PARTY.txt",
+          "sha256": "2537f5653345db7231ff12f307bcfa4c89807d45ed1c4bb8ebfb6f26f61b160a",
+          "bytes": 179634
+        },
+        {
+          "installed_path": "opencv_python-5.0.0.93.dist-info/LICENSE.txt",
+          "destination": "opencv-python/5.0.0.93/opencv_python-5.0.0.93.dist-info/LICENSE.txt",
+          "sha256": "09d719058e782ac7bc71ba21c944e1136cde2bb957c0e888121f0218d6b5f02c",
+          "bytes": 1070
+        }
+      ],
+      "models": [],
+      "model_metadata": [],
+      "wheel_notices_found": true
+    },
+    {
+      "name": "packaging",
+      "version": "26.3",
+      "license_expression": "Apache-2.0 OR BSD-2-Clause",
+      "license_metadata": null,
+      "project_urls": [
+        "Documentation, https://packaging.pypa.io/",
+        "Source, https://github.com/pypa/packaging"
+      ],
+      "files": [
+        {
+          "installed_path": "packaging-26.3.dist-info/licenses/LICENSE",
+          "destination": "packaging/26.3/packaging-26.3.dist-info/licenses/LICENSE",
+          "sha256": "cad1ef5bd340d73e074ba614d26f7deaca5c7940c3d8c34852e65c4909686c48",
+          "bytes": 197
+        },
+        {
+          "installed_path": "packaging-26.3.dist-info/licenses/LICENSE.APACHE",
+          "destination": "packaging/26.3/packaging-26.3.dist-info/licenses/LICENSE.APACHE",
+          "sha256": "0d542e0c8804e39aa7f37eb00da5a762149dc682d7829451287e11b938e94594",
+          "bytes": 10174
+        },
+        {
+          "installed_path": "packaging-26.3.dist-info/licenses/LICENSE.BSD",
+          "destination": "packaging/26.3/packaging-26.3.dist-info/licenses/LICENSE.BSD",
+          "sha256": "b70e7e9b742f1cc6f948b34c16aa39ffece94196364bc88ff0d2180f0028fac5",
+          "bytes": 1344
+        }
+      ],
+      "models": [],
+      "model_metadata": [],
+      "wheel_notices_found": true
+    },
+    {
+      "name": "pillow",
+      "version": "12.3.0",
+      "license_expression": "MIT-CMU",
+      "license_metadata": null,
+      "project_urls": [
+        "Release notes, https://pillow.readthedocs.io/en/stable/releasenotes/index.html",
+        "Changelog, https://github.com/python-pillow/Pillow/releases",
+        "Documentation, https://pillow.readthedocs.io",
+        "Funding, https://tidelift.com/subscription/pkg/pypi-pillow?utm_source=pypi-pillow&utm_medium=pypi",
+        "Homepage, https://python-pillow.github.io",
+        "Mastodon, https://fosstodon.org/@pillow",
+        "Source, https://github.com/python-pillow/Pillow"
+      ],
+      "files": [
+        {
+          "installed_path": "pillow-12.3.0.dist-info/licenses/LICENSE",
+          "destination": "pillow/12.3.0/pillow-12.3.0.dist-info/licenses/LICENSE",
+          "sha256": "dda12a98c1979cf3d94df1cff45d27a4cb3f04a60c76f76902ac54cac03ec0ce",
+          "bytes": 70307
+        }
+      ],
+      "models": [],
+      "model_metadata": [],
+      "wheel_notices_found": true
+    },
+    {
+      "name": "pip",
+      "version": "26.0.1",
+      "license_expression": "MIT",
+      "license_metadata": null,
+      "project_urls": [
+        "Changelog, https://pip.pypa.io/en/stable/news/",
+        "Documentation, https://pip.pypa.io",
+        "Homepage, https://pip.pypa.io/",
+        "Source, https://github.com/pypa/pip"
+      ],
+      "files": [
+        {
+          "installed_path": "pip-26.0.1.dist-info/licenses/AUTHORS.txt",
+          "destination": "pip/26.0.1/pip-26.0.1.dist-info/licenses/AUTHORS.txt",
+          "sha256": "82b4a5f580cd3a93851494d7f1960a49d81fa2e5e2fc3ce5472606136faee5a2",
+          "bytes": 11731
+        },
+        {
+          "installed_path": "pip-26.0.1.dist-info/licenses/LICENSE.txt",
+          "destination": "pip/26.0.1/pip-26.0.1.dist-info/licenses/LICENSE.txt",
+          "sha256": "634300a669d49aeae65b12c6c48c924c51a4cdf3d1ff086dc3456dc8bcaa2104",
+          "bytes": 1093
+        },
+        {
+          "installed_path": "pip-26.0.1.dist-info/licenses/src/pip/_vendor/cachecontrol/LICENSE.txt",
+          "destination": "pip/26.0.1/pip-26.0.1.dist-info/licenses/src/pip/_vendor/cachecontrol/LICENSE.txt",
+          "sha256": "86eeee87be2a43f3ff1f56496f451f69243926f025fedbb033666c304c4c161b",
+          "bytes": 558
+        },
+        {
+          "installed_path": "pip-26.0.1.dist-info/licenses/src/pip/_vendor/certifi/LICENSE",
+          "destination": "pip/26.0.1/pip-26.0.1.dist-info/licenses/src/pip/_vendor/certifi/LICENSE",
+          "sha256": "e93716da6b9c0d5a4a1df60fe695b370f0695603d21f6f83f053e42cfc10caf7",
+          "bytes": 989
+        },
+        {
+          "installed_path": "pip-26.0.1.dist-info/licenses/src/pip/_vendor/dependency_groups/LICENSE.txt",
+          "destination": "pip/26.0.1/pip-26.0.1.dist-info/licenses/src/pip/_vendor/dependency_groups/LICENSE.txt",
+          "sha256": "1ab36e3e2a4ba8631625384f87e9e091db1faed034c5b23325b3239abf2cc525",
+          "bytes": 1099
+        },
+        {
+          "installed_path": "pip-26.0.1.dist-info/licenses/src/pip/_vendor/distlib/LICENSE.txt",
+          "destination": "pip/26.0.1/pip-26.0.1.dist-info/licenses/src/pip/_vendor/distlib/LICENSE.txt",
+          "sha256": "808e10c8a6ab8deb149ff9b3fb19f447a808094606d712a9ca57fead3552599d",
+          "bytes": 14531
+        },
+        {
+          "installed_path": "pip-26.0.1.dist-info/licenses/src/pip/_vendor/distro/LICENSE",
+          "destination": "pip/26.0.1/pip-26.0.1.dist-info/licenses/src/pip/_vendor/distro/LICENSE",
+          "sha256": "cb5e8e7e5f4a3988e1063c142c60dc2df75605f4c46515e776e3aca6df976e14",
+          "bytes": 11325
+        },
+        {
+          "installed_path": "pip-26.0.1.dist-info/licenses/src/pip/_vendor/idna/LICENSE.md",
+          "destination": "pip/26.0.1/pip-26.0.1.dist-info/licenses/src/pip/_vendor/idna/LICENSE.md",
+          "sha256": "b7a336abf3b04e180ec065cdd16e705d079e1cc7a14f910aa6e9187f36b9cd87",
+          "bytes": 1541
+        },
+        {
+          "installed_path": "pip-26.0.1.dist-info/licenses/src/pip/_vendor/msgpack/COPYING",
+          "destination": "pip/26.0.1/pip-26.0.1.dist-info/licenses/src/pip/_vendor/msgpack/COPYING",
+          "sha256": "492dedba85da5872f78e6091bcd1fea474d660d35acb4dee964b8aab3f007427",
+          "bytes": 614
+        },
+        {
+          "installed_path": "pip-26.0.1.dist-info/licenses/src/pip/_vendor/packaging/LICENSE",
+          "destination": "pip/26.0.1/pip-26.0.1.dist-info/licenses/src/pip/_vendor/packaging/LICENSE",
+          "sha256": "cad1ef5bd340d73e074ba614d26f7deaca5c7940c3d8c34852e65c4909686c48",
+          "bytes": 197
+        },
+        {
+          "installed_path": "pip-26.0.1.dist-info/licenses/src/pip/_vendor/packaging/LICENSE.APACHE",
+          "destination": "pip/26.0.1/pip-26.0.1.dist-info/licenses/src/pip/_vendor/packaging/LICENSE.APACHE",
+          "sha256": "0d542e0c8804e39aa7f37eb00da5a762149dc682d7829451287e11b938e94594",
+          "bytes": 10174
+        },
+        {
+          "installed_path": "pip-26.0.1.dist-info/licenses/src/pip/_vendor/packaging/LICENSE.BSD",
+          "destination": "pip/26.0.1/pip-26.0.1.dist-info/licenses/src/pip/_vendor/packaging/LICENSE.BSD",
+          "sha256": "b70e7e9b742f1cc6f948b34c16aa39ffece94196364bc88ff0d2180f0028fac5",
+          "bytes": 1344
+        },
+        {
+          "installed_path": "pip-26.0.1.dist-info/licenses/src/pip/_vendor/pkg_resources/LICENSE",
+          "destination": "pip/26.0.1/pip-26.0.1.dist-info/licenses/src/pip/_vendor/pkg_resources/LICENSE",
+          "sha256": "86da0f01aeae46348a3c3d465195dc1ceccde79f79e87769a64b8da04b2a4741",
+          "bytes": 1023
+        },
+        {
+          "installed_path": "pip-26.0.1.dist-info/licenses/src/pip/_vendor/platformdirs/LICENSE",
+          "destination": "pip/26.0.1/pip-26.0.1.dist-info/licenses/src/pip/_vendor/platformdirs/LICENSE",
+          "sha256": "29e0fd62e929850e86eb28c3fdccf0cefdf4fa94879011cffb3d0d4bed6d4db6",
+          "bytes": 1089
+        },
+        {
+          "installed_path": "pip-26.0.1.dist-info/licenses/src/pip/_vendor/pygments/LICENSE",
+          "destination": "pip/26.0.1/pip-26.0.1.dist-info/licenses/src/pip/_vendor/pygments/LICENSE",
+          "sha256": "a9d66f1d526df02e29dce73436d34e56e8632f46c275bbdffc70569e882f9f17",
+          "bytes": 1331
+        },
+        {
+          "installed_path": "pip-26.0.1.dist-info/licenses/src/pip/_vendor/pyproject_hooks/LICENSE",
+          "destination": "pip/26.0.1/pip-26.0.1.dist-info/licenses/src/pip/_vendor/pyproject_hooks/LICENSE",
+          "sha256": "1b22b049b5267d6dfc23a67bf4a84d8ec04b9fdfb1a51d360e42b4342c8b4154",
+          "bytes": 1081
+        },
+        {
+          "installed_path": "pip-26.0.1.dist-info/licenses/src/pip/_vendor/requests/LICENSE",
+          "destination": "pip/26.0.1/pip-26.0.1.dist-info/licenses/src/pip/_vendor/requests/LICENSE",
+          "sha256": "09e8a9bcec8067104652c168685ab0931e7868f9c8284b66f5ae6edae5f1130b",
+          "bytes": 10142
+        },
+        {
+          "installed_path": "pip-26.0.1.dist-info/licenses/src/pip/_vendor/resolvelib/LICENSE",
+          "destination": "pip/26.0.1/pip-26.0.1.dist-info/licenses/src/pip/_vendor/resolvelib/LICENSE",
+          "sha256": "f388fd38cad13112c1dc0f669bbe80e7f84541edbafb72f3030d2ca7642c3c9d",
+          "bytes": 751
+        },
+        {
+          "installed_path": "pip-26.0.1.dist-info/licenses/src/pip/_vendor/rich/LICENSE",
+          "destination": "pip/26.0.1/pip-26.0.1.dist-info/licenses/src/pip/_vendor/rich/LICENSE",
+          "sha256": "deed7c17a4318158190a3ea239cc879a5a50271cebb98ae7025f48fbe58dca15",
+          "bytes": 1056
+        },
+        {
+          "installed_path": "pip-26.0.1.dist-info/licenses/src/pip/_vendor/tomli/LICENSE",
+          "destination": "pip/26.0.1/pip-26.0.1.dist-info/licenses/src/pip/_vendor/tomli/LICENSE",
+          "sha256": "b80816b0d530b8accb4c2211783790984a6e3b61922c2b5ee92f3372ab2742fe",
+          "bytes": 1072
+        },
+        {
+          "installed_path": "pip-26.0.1.dist-info/licenses/src/pip/_vendor/tomli_w/LICENSE",
+          "destination": "pip/26.0.1/pip-26.0.1.dist-info/licenses/src/pip/_vendor/tomli_w/LICENSE",
+          "sha256": "b80816b0d530b8accb4c2211783790984a6e3b61922c2b5ee92f3372ab2742fe",
+          "bytes": 1072
+        },
+        {
+          "installed_path": "pip-26.0.1.dist-info/licenses/src/pip/_vendor/truststore/LICENSE",
+          "destination": "pip/26.0.1/pip-26.0.1.dist-info/licenses/src/pip/_vendor/truststore/LICENSE",
+          "sha256": "33be7b7e8fa4fd19b1760e1a8ed8a668bdab852c91b692dd41424bcb725a9fca",
+          "bytes": 1086
+        },
+        {
+          "installed_path": "pip-26.0.1.dist-info/licenses/src/pip/_vendor/urllib3/LICENSE.txt",
+          "destination": "pip/26.0.1/pip-26.0.1.dist-info/licenses/src/pip/_vendor/urllib3/LICENSE.txt",
+          "sha256": "c37bf186e27cf9dbe9619e55edfe3cea7b30091ceb3da63c7dacbe0e6d77907b",
+          "bytes": 1115
+        },
+        {
+          "installed_path": "pip/_vendor/cachecontrol/LICENSE.txt",
+          "destination": "pip/26.0.1/pip/_vendor/cachecontrol/LICENSE.txt",
+          "sha256": "86eeee87be2a43f3ff1f56496f451f69243926f025fedbb033666c304c4c161b",
+          "bytes": 558
+        },
+        {
+          "installed_path": "pip/_vendor/certifi/LICENSE",
+          "destination": "pip/26.0.1/pip/_vendor/certifi/LICENSE",
+          "sha256": "e93716da6b9c0d5a4a1df60fe695b370f0695603d21f6f83f053e42cfc10caf7",
+          "bytes": 989
+        },
+        {
+          "installed_path": "pip/_vendor/dependency_groups/LICENSE.txt",
+          "destination": "pip/26.0.1/pip/_vendor/dependency_groups/LICENSE.txt",
+          "sha256": "1ab36e3e2a4ba8631625384f87e9e091db1faed034c5b23325b3239abf2cc525",
+          "bytes": 1099
+        },
+        {
+          "installed_path": "pip/_vendor/distlib/LICENSE.txt",
+          "destination": "pip/26.0.1/pip/_vendor/distlib/LICENSE.txt",
+          "sha256": "808e10c8a6ab8deb149ff9b3fb19f447a808094606d712a9ca57fead3552599d",
+          "bytes": 14531
+        },
+        {
+          "installed_path": "pip/_vendor/distro/LICENSE",
+          "destination": "pip/26.0.1/pip/_vendor/distro/LICENSE",
+          "sha256": "cb5e8e7e5f4a3988e1063c142c60dc2df75605f4c46515e776e3aca6df976e14",
+          "bytes": 11325
+        },
+        {
+          "installed_path": "pip/_vendor/idna/LICENSE.md",
+          "destination": "pip/26.0.1/pip/_vendor/idna/LICENSE.md",
+          "sha256": "b7a336abf3b04e180ec065cdd16e705d079e1cc7a14f910aa6e9187f36b9cd87",
+          "bytes": 1541
+        },
+        {
+          "installed_path": "pip/_vendor/msgpack/COPYING",
+          "destination": "pip/26.0.1/pip/_vendor/msgpack/COPYING",
+          "sha256": "492dedba85da5872f78e6091bcd1fea474d660d35acb4dee964b8aab3f007427",
+          "bytes": 614
+        },
+        {
+          "installed_path": "pip/_vendor/packaging/LICENSE",
+          "destination": "pip/26.0.1/pip/_vendor/packaging/LICENSE",
+          "sha256": "cad1ef5bd340d73e074ba614d26f7deaca5c7940c3d8c34852e65c4909686c48",
+          "bytes": 197
+        },
+        {
+          "installed_path": "pip/_vendor/packaging/LICENSE.APACHE",
+          "destination": "pip/26.0.1/pip/_vendor/packaging/LICENSE.APACHE",
+          "sha256": "0d542e0c8804e39aa7f37eb00da5a762149dc682d7829451287e11b938e94594",
+          "bytes": 10174
+        },
+        {
+          "installed_path": "pip/_vendor/packaging/LICENSE.BSD",
+          "destination": "pip/26.0.1/pip/_vendor/packaging/LICENSE.BSD",
+          "sha256": "b70e7e9b742f1cc6f948b34c16aa39ffece94196364bc88ff0d2180f0028fac5",
+          "bytes": 1344
+        },
+        {
+          "installed_path": "pip/_vendor/pkg_resources/LICENSE",
+          "destination": "pip/26.0.1/pip/_vendor/pkg_resources/LICENSE",
+          "sha256": "86da0f01aeae46348a3c3d465195dc1ceccde79f79e87769a64b8da04b2a4741",
+          "bytes": 1023
+        },
+        {
+          "installed_path": "pip/_vendor/platformdirs/LICENSE",
+          "destination": "pip/26.0.1/pip/_vendor/platformdirs/LICENSE",
+          "sha256": "29e0fd62e929850e86eb28c3fdccf0cefdf4fa94879011cffb3d0d4bed6d4db6",
+          "bytes": 1089
+        },
+        {
+          "installed_path": "pip/_vendor/pygments/LICENSE",
+          "destination": "pip/26.0.1/pip/_vendor/pygments/LICENSE",
+          "sha256": "a9d66f1d526df02e29dce73436d34e56e8632f46c275bbdffc70569e882f9f17",
+          "bytes": 1331
+        },
+        {
+          "installed_path": "pip/_vendor/pyproject_hooks/LICENSE",
+          "destination": "pip/26.0.1/pip/_vendor/pyproject_hooks/LICENSE",
+          "sha256": "1b22b049b5267d6dfc23a67bf4a84d8ec04b9fdfb1a51d360e42b4342c8b4154",
+          "bytes": 1081
+        },
+        {
+          "installed_path": "pip/_vendor/requests/LICENSE",
+          "destination": "pip/26.0.1/pip/_vendor/requests/LICENSE",
+          "sha256": "09e8a9bcec8067104652c168685ab0931e7868f9c8284b66f5ae6edae5f1130b",
+          "bytes": 10142
+        },
+        {
+          "installed_path": "pip/_vendor/resolvelib/LICENSE",
+          "destination": "pip/26.0.1/pip/_vendor/resolvelib/LICENSE",
+          "sha256": "f388fd38cad13112c1dc0f669bbe80e7f84541edbafb72f3030d2ca7642c3c9d",
+          "bytes": 751
+        },
+        {
+          "installed_path": "pip/_vendor/rich/LICENSE",
+          "destination": "pip/26.0.1/pip/_vendor/rich/LICENSE",
+          "sha256": "deed7c17a4318158190a3ea239cc879a5a50271cebb98ae7025f48fbe58dca15",
+          "bytes": 1056
+        },
+        {
+          "installed_path": "pip/_vendor/tomli/LICENSE",
+          "destination": "pip/26.0.1/pip/_vendor/tomli/LICENSE",
+          "sha256": "b80816b0d530b8accb4c2211783790984a6e3b61922c2b5ee92f3372ab2742fe",
+          "bytes": 1072
+        },
+        {
+          "installed_path": "pip/_vendor/tomli_w/LICENSE",
+          "destination": "pip/26.0.1/pip/_vendor/tomli_w/LICENSE",
+          "sha256": "b80816b0d530b8accb4c2211783790984a6e3b61922c2b5ee92f3372ab2742fe",
+          "bytes": 1072
+        },
+        {
+          "installed_path": "pip/_vendor/truststore/LICENSE",
+          "destination": "pip/26.0.1/pip/_vendor/truststore/LICENSE",
+          "sha256": "33be7b7e8fa4fd19b1760e1a8ed8a668bdab852c91b692dd41424bcb725a9fca",
+          "bytes": 1086
+        },
+        {
+          "installed_path": "pip/_vendor/urllib3/LICENSE.txt",
+          "destination": "pip/26.0.1/pip/_vendor/urllib3/LICENSE.txt",
+          "sha256": "c37bf186e27cf9dbe9619e55edfe3cea7b30091ceb3da63c7dacbe0e6d77907b",
+          "bytes": 1115
+        }
+      ],
+      "models": [],
+      "model_metadata": [],
+      "wheel_notices_found": true
+    },
+    {
+      "name": "pluggy",
+      "version": "1.7.0",
+      "license_expression": null,
+      "license_metadata": "MIT",
+      "project_urls": [
+        "Homepage, https://github.com/pytest-dev/pluggy",
+        "Documentation, https://pluggy.readthedocs.io/",
+        "Changelog, https://pluggy.readthedocs.io/en/latest/changelog.html",
+        "Repository, https://github.com/pytest-dev/pluggy",
+        "Issues, https://github.com/pytest-dev/pluggy/issues",
+        "Funding, https://tidelift.com/subscription/pkg/pypi-pluggy"
+      ],
+      "files": [
+        {
+          "installed_path": "pluggy-1.7.0.dist-info/licenses/LICENSE",
+          "destination": "pluggy/1.7.0/pluggy-1.7.0.dist-info/licenses/LICENSE",
+          "sha256": "d6b65e6c213a5d0b577911d34d6e5949b9f59d76c238c5071a2f3fc16cfb2606",
+          "bytes": 1110
+        }
+      ],
+      "models": [],
+      "model_metadata": [],
+      "wheel_notices_found": true
+    },
+    {
+      "name": "protobuf",
+      "version": "7.36.2",
+      "license_expression": null,
+      "license_metadata": "3-Clause BSD License",
+      "project_urls": [],
+      "files": [
+        {
+          "installed_path": "protobuf-7.36.2.dist-info/LICENSE",
+          "destination": "protobuf/7.36.2/protobuf-7.36.2.dist-info/LICENSE",
+          "sha256": "6e5e117324afd944dcf67f36cf329843bc1a92229a8cd9bb573d7a83130fea7d",
+          "bytes": 1732
+        }
+      ],
+      "models": [],
+      "model_metadata": [],
+      "wheel_notices_found": true
+    },
+    {
+      "name": "pyclipper",
+      "version": "1.4.0",
+      "license_expression": null,
+      "license_metadata": "MIT",
+      "project_urls": [],
+      "files": [
+        {
+          "installed_path": "pyclipper-1.4.0.dist-info/licenses/LICENSE",
+          "destination": "pyclipper/1.4.0/pyclipper-1.4.0.dist-info/licenses/LICENSE",
+          "sha256": "32ee7398e3123736fd14e9f08287edc2d97ace102ab54d8dc4edc8d31c651fa8",
+          "bytes": 1110
+        }
+      ],
+      "models": [],
+      "model_metadata": [],
+      "wheel_notices_found": true
+    },
+    {
+      "name": "Pygments",
+      "version": "2.21.0",
+      "license_expression": "BSD-2-Clause",
+      "license_metadata": null,
+      "project_urls": [
+        "Homepage, https://pygments.org",
+        "Documentation, https://pygments.org/docs",
+        "Source, https://github.com/pygments/pygments",
+        "Bug Tracker, https://github.com/pygments/pygments/issues",
+        "Changelog, https://github.com/pygments/pygments/blob/master/CHANGES"
+      ],
+      "files": [
+        {
+          "installed_path": "pygments-2.21.0.dist-info/licenses/AUTHORS",
+          "destination": "pygments/2.21.0/pygments-2.21.0.dist-info/licenses/AUTHORS",
+          "sha256": "71a83872ad82f57be692cf827e048e2cd51d45169cfa1ea3f28706d97a872c0f",
+          "bytes": 11048
+        },
+        {
+          "installed_path": "pygments-2.21.0.dist-info/licenses/LICENSE",
+          "destination": "pygments/2.21.0/pygments-2.21.0.dist-info/licenses/LICENSE",
+          "sha256": "a9d66f1d526df02e29dce73436d34e56e8632f46c275bbdffc70569e882f9f17",
+          "bytes": 1331
+        }
+      ],
+      "models": [],
+      "model_metadata": [],
+      "wheel_notices_found": true
+    },
+    {
+      "name": "PySide6_Essentials",
+      "version": "6.11.2",
+      "license_expression": null,
+      "license_metadata": "LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only",
+      "project_urls": [
+        "Homepage, https://pyside.org",
+        "Documentation, https://doc.qt.io/qtforpython",
+        "Repository, https://code.qt.io/cgit/pyside/pyside-setup.git/",
+        "Changelog, https://code.qt.io/cgit/pyside/pyside-setup.git/tree/doc/changelogs",
+        "Tracker, https://qt-project.atlassian.net/browse/PYSIDE"
+      ],
+      "files": [],
+      "models": [],
+      "model_metadata": [],
+      "wheel_notices_found": false
+    },
+    {
+      "name": "pytest",
+      "version": "9.2.0",
+      "license_expression": "MIT",
+      "license_metadata": null,
+      "project_urls": [
+        "Changelog, https://docs.pytest.org/en/stable/changelog.html",
+        "Contact, https://docs.pytest.org/en/stable/contact.html",
+        "Funding, https://docs.pytest.org/en/stable/sponsor.html",
+        "Homepage, https://docs.pytest.org/en/latest/",
+        "Source, https://github.com/pytest-dev/pytest",
+        "Tracker, https://github.com/pytest-dev/pytest/issues"
+      ],
+      "files": [
+        {
+          "installed_path": "pytest-9.2.0.dist-info/licenses/LICENSE",
+          "destination": "pytest/9.2.0/pytest-9.2.0.dist-info/licenses/LICENSE",
+          "sha256": "ca836a5f9ecca3b2f350230faa20a48fb8b145653b5568d784862df864706b9b",
+          "bytes": 1091
+        }
+      ],
+      "models": [],
+      "model_metadata": [],
+      "wheel_notices_found": true
+    },
+    {
+      "name": "PyYAML",
+      "version": "6.0.3",
+      "license_expression": null,
+      "license_metadata": "MIT",
+      "project_urls": [
+        "Bug Tracker, https://github.com/yaml/pyyaml/issues",
+        "CI, https://github.com/yaml/pyyaml/actions",
+        "Documentation, https://pyyaml.org/wiki/PyYAMLDocumentation",
+        "Mailing lists, http://lists.sourceforge.net/lists/listinfo/yaml-core",
+        "Source Code, https://github.com/yaml/pyyaml"
+      ],
+      "files": [
+        {
+          "installed_path": "pyyaml-6.0.3.dist-info/licenses/LICENSE",
+          "destination": "pyyaml/6.0.3/pyyaml-6.0.3.dist-info/licenses/LICENSE",
+          "sha256": "8d3928f9dc4490fd635707cb88eb26bd764102a7282954307d3e5167a577e8a4",
+          "bytes": 1101
+        }
+      ],
+      "models": [],
+      "model_metadata": [],
+      "wheel_notices_found": true
+    },
+    {
+      "name": "RapidFuzz",
+      "version": "3.14.6",
+      "license_expression": "MIT",
+      "license_metadata": null,
+      "project_urls": [
+        "Homepage, https://github.com/rapidfuzz/RapidFuzz",
+        "Documentation, https://rapidfuzz.github.io/RapidFuzz/",
+        "Repository, https://github.com/rapidfuzz/RapidFuzz.git",
+        "Issues, https://github.com/rapidfuzz/RapidFuzz/issues",
+        "Changelog, https://github.com/rapidfuzz/RapidFuzz/blob/main/CHANGELOG.rst"
+      ],
+      "files": [
+        {
+          "installed_path": "rapidfuzz-3.14.6.dist-info/licenses/LICENSE",
+          "destination": "rapidfuzz/3.14.6/rapidfuzz-3.14.6.dist-info/licenses/LICENSE",
+          "sha256": "f34ccdffdff56fc417785915eedf18601d5479755df3c472b2c754c29802d683",
+          "bytes": 1092
+        }
+      ],
+      "models": [],
+      "model_metadata": [],
+      "wheel_notices_found": true
+    },
+    {
+      "name": "rapidocr",
+      "version": "3.9.2",
+      "license_expression": "Apache-2.0",
+      "license_metadata": null,
+      "project_urls": [
+        "Documentation, https://rapidai.github.io/RapidOCRDocs",
+        "Changelog, https://github.com/RapidAI/RapidOCR/releases"
+      ],
+      "files": [],
+      "models": [
+        {
+          "installed_path": "rapidocr/models/PP-OCRv6_det_small.onnx",
+          "sha256": "090f04abcd9d9a7498bc4ebf677e4cb9bdce1fe4197ddb7e529f1ef44e1ff94f",
+          "bytes": 9929594
+        },
+        {
+          "installed_path": "rapidocr/models/PP-OCRv6_rec_small.onnx",
+          "sha256": "6f327246b50388f3c176ae304bd95767ea6dc0c9ae92153ef8cbe210b3c14884",
+          "bytes": 21234383
+        },
+        {
+          "installed_path": "rapidocr/models/ch_ppocr_mobile_v2.0_cls_mobile.onnx",
+          "sha256": "e47acedf663230f8863ff1ab0e64dd2d82b838fceb5957146dab185a89d6215c",
+          "bytes": 585532
+        }
+      ],
+      "model_metadata": [
+        {
+          "destination": "rapidocr/3.9.2/rapidocr/config.yaml",
+          "sha256": "06623941e188461a0bc263fe16175cb5e5f6f6b01f4387e546d3a741569fc021"
+        },
+        {
+          "destination": "rapidocr/3.9.2/rapidocr/default_models.yaml",
+          "sha256": "db47df9d6b071721f1633667b41cfef1e40b5d7f09be030aaea8be801ca2f2f5"
+        }
+      ],
+      "wheel_notices_found": false
+    },
+    {
+      "name": "requests",
+      "version": "2.34.2",
+      "license_expression": null,
+      "license_metadata": "Apache-2.0",
+      "project_urls": [
+        "Documentation, https://requests.readthedocs.io",
+        "Source, https://github.com/psf/requests"
+      ],
+      "files": [
+        {
+          "installed_path": "requests-2.34.2.dist-info/licenses/LICENSE",
+          "destination": "requests/2.34.2/requests-2.34.2.dist-info/licenses/LICENSE",
+          "sha256": "09e8a9bcec8067104652c168685ab0931e7868f9c8284b66f5ae6edae5f1130b",
+          "bytes": 10142
+        },
+        {
+          "installed_path": "requests-2.34.2.dist-info/licenses/NOTICE",
+          "destination": "requests/2.34.2/requests-2.34.2.dist-info/licenses/NOTICE",
+          "sha256": "f5110972dedad2b4e9d314518daf3b7d72d6e02e499acd802181de6f74571dcc",
+          "bytes": 38
+        }
+      ],
+      "models": [],
+      "model_metadata": [],
+      "wheel_notices_found": true
+    },
+    {
+      "name": "shapely",
+      "version": "2.2.0",
+      "license_expression": "BSD-3-Clause",
+      "license_metadata": null,
+      "project_urls": [
+        "Documentation, https://shapely.readthedocs.io/",
+        "Repository, https://github.com/shapely/shapely"
+      ],
+      "files": [
+        {
+          "installed_path": "shapely-2.2.0.dist-info/licenses/LICENSE.txt",
+          "destination": "shapely/2.2.0/shapely-2.2.0.dist-info/licenses/LICENSE.txt",
+          "sha256": "4a207eac9bf257ed286e1c6f0fce253d1abfdb134fc61ec855e37f5692a3f754",
+          "bytes": 1583
+        },
+        {
+          "installed_path": "shapely-2.2.0.dist-info/licenses/LICENSE_GEOS",
+          "destination": "shapely/2.2.0/shapely-2.2.0.dist-info/licenses/LICENSE_GEOS",
+          "sha256": "81d9aaf9ab7e3e6184568a70f27ee3e138d8d1e543b46dad5af88cff61cf1b36",
+          "bytes": 26787
+        }
+      ],
+      "models": [],
+      "model_metadata": [],
+      "wheel_notices_found": true
+    },
+    {
+      "name": "shiboken6",
+      "version": "6.11.2",
+      "license_expression": null,
+      "license_metadata": "LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only",
+      "project_urls": [
+        "Homepage, https://pyside.org",
+        "Documentation, https://doc.qt.io/qtforpython",
+        "Repository, https://code.qt.io/cgit/pyside/pyside-setup.git/",
+        "Changelog, https://code.qt.io/cgit/pyside/pyside-setup.git/tree/doc/changelogs",
+        "Tracker, https://qt-project.atlassian.net/browse/PYSIDE"
+      ],
+      "files": [],
+      "models": [],
+      "model_metadata": [],
+      "wheel_notices_found": false
+    },
+    {
+      "name": "six",
+      "version": "1.17.0",
+      "license_expression": null,
+      "license_metadata": "MIT",
+      "project_urls": [],
+      "files": [
+        {
+          "installed_path": "six-1.17.0.dist-info/LICENSE",
+          "destination": "six/1.17.0/six-1.17.0.dist-info/LICENSE",
+          "sha256": "4375ba20e2b9c6c4e7cad2940a628fd90e95cc3d50ee92aae755715d8ba1fbd0",
+          "bytes": 1066
+        }
+      ],
+      "models": [],
+      "model_metadata": [],
+      "wheel_notices_found": true
+    },
+    {
+      "name": "tqdm",
+      "version": "4.70.1",
+      "license_expression": null,
+      "license_metadata": "MPL-2.0 AND MIT",
+      "project_urls": [
+        "homepage, https://tqdm.github.io",
+        "repository, https://github.com/tqdm/tqdm",
+        "changelog, https://tqdm.github.io/releases",
+        "wiki, https://github.com/tqdm/tqdm/wiki"
+      ],
+      "files": [
+        {
+          "installed_path": "tqdm-4.70.1.dist-info/licenses/LICENCE",
+          "destination": "tqdm/4.70.1/tqdm-4.70.1.dist-info/licenses/LICENCE",
+          "sha256": "fcff87c3a47ce8028a8512aa182d4fcf0ad1c90544ee75cf9b343684cac194de",
+          "bytes": 1985
+        }
+      ],
+      "models": [],
+      "model_metadata": [],
+      "wheel_notices_found": true
+    },
+    {
+      "name": "urllib3",
+      "version": "2.8.0",
+      "license_expression": "MIT",
+      "license_metadata": null,
+      "project_urls": [
+        "Changelog, https://github.com/urllib3/urllib3/blob/main/CHANGES.rst",
+        "Documentation, https://urllib3.readthedocs.io",
+        "Code, https://github.com/urllib3/urllib3",
+        "Issue tracker, https://github.com/urllib3/urllib3/issues",
+        "Security policy, https://urllib3.readthedocs.io/en/latest/security.html"
+      ],
+      "files": [
+        {
+          "installed_path": "urllib3-2.8.0.dist-info/licenses/LICENSE.txt",
+          "destination": "urllib3/2.8.0/urllib3-2.8.0.dist-info/licenses/LICENSE.txt",
+          "sha256": "130e3a64d5fdd5d096a752694634a7d9df284469de86e5732100268041e3d686",
+          "bytes": 1093
+        }
+      ],
+      "models": [],
+      "model_metadata": [],
+      "wheel_notices_found": true
+    },
+    {
+      "name": "CPython",
+      "version": "3.13.13",
+      "files": [
+        {
+          "installed_path": "lib/python3.13/LICENSE.txt",
+          "destination": "python/3.13.13/lib/python3.13/LICENSE.txt",
+          "sha256": "78b12c3a81360b357002334f0e70ea0e92eebf7a9b358805c03c48484945f3bb",
+          "bytes": 13809
+        }
+      ],
+      "project_urls": [
+        "Source, https://www.python.org/downloads/source/"
+      ],
+      "wheel_notices_found": true
+    }
+  ]
+}

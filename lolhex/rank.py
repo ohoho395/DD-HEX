@@ -31,21 +31,7 @@ def lookup(riot_id: str, timeout: float = 10) -> dict:
     name, sep, tag = riot_id.rpartition("#")
     if not sep or not name.strip() or not tag.strip():
         raise RankError("请填「名字#编号」，比如：提莫#12345")
-    cfg = cloud.get().get("rank") or {}
-    if not cfg.get("enabled", True):
-        raise RankError(cfg.get("message") or "查询暂时关闭，请稍后再试")
-    try:
-        r = requests.get(cfg.get("api") or cloud.DEFAULT["rank"]["api"], params={"id": riot_id},
-                         headers={"X-AramHex": __version__, "User-Agent": f"aramhex/{__version__}"}, timeout=timeout)
-    except requests.RequestException:
-        raise RankError("连不上查询服务，请稍后再试")
-    try:
-        body = r.json()
-    except ValueError:
-        body = {}
-    if r.status_code == 200 and body.get("results"):
-        return body
-    raise RankError(body.get("error") or ("查询服务暂时不可用，请稍后再试" if r.status_code >= 500 else f"查询失败（{r.status_code}）"))
+    raise RankError("DD HEX 第一版不提供在线查分，请手动选择分段")
 
 
 def _pct(x: float) -> str:

@@ -37,8 +37,8 @@ def test_group_wait_invalidates_first_offer_still_being_scored(store, tmp_path, 
     engine._set(phase="ingame", hero_id="17")
     original = module.recommend.evaluate
 
-    def group_changes_while_scoring(*args):
-        result = original(*args)
+    def group_changes_while_scoring(*args, **kwargs):
+        result = original(*args, **kwargs)
         engine._on_offer(Offer([None] * 3, [], [], [], group_changed=True))
         return result
 

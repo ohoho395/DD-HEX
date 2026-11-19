@@ -11,11 +11,14 @@
 from __future__ import annotations
 
 import logging
+import hashlib
 import math
 import threading
 import time
 from dataclasses import dataclass
 from importlib.metadata import PackageNotFoundError, version
+from importlib.resources import files
+from pathlib import Path
 from types import SimpleNamespace
 
 import numpy as np
@@ -44,6 +47,28 @@ class TextLine:
 
 THREADS = {"EngineConfig.onnxruntime.intra_op_num_threads": 1, "EngineConfig.onnxruntime.inter_op_num_threads": 1}
 
+# 与 requirements 中 RapidOCR 3.9.2 随包模型一致；升级时重新核对模型与许可证。
+LOCAL_MODELS = {
+    "Det": ("PP-OCRv6_det_small.onnx", "090f04abcd9d9a7498bc4ebf677e4cb9bdce1fe4197ddb7e529f1ef44e1ff94f"),
+    "Cls": ("ch_ppocr_mobile_v2.0_cls_mobile.onnx", "e47acedf663230f8863ff1ab0e64dd2d82b838fceb5957146dab185a89d6215c"),
+    "Rec": ("PP-OCRv6_rec_small.onnx", "6f327246b50388f3c176ae304bd95767ea6dc0c9ae92153ef8cbe210b3c14884"),
+}
+
+
+def local_model_params(root: Path | None = None) -> dict:
+    root = root if root is not None else Path(str(files("rapidocr") / "models"))
+    params = {}
+    for section, (name, expected) in LOCAL_MODELS.items():
+        path = root / name
+        digest = None
+        if path.is_file():
+            with path.open("rb") as model:
+                digest = hashlib.file_digest(model, "sha256").hexdigest()
+        if digest != expected:
+            raise RuntimeError(f"OCR 模型缺失或损坏：{name}。请重新安装固定版本依赖或完整安装包；不会自动联网下载。")
+        params[f"{section}.model_path"] = str(path)
+    return params
+
 
 @dataclass(frozen=True)
 class ReadPlan:
@@ -56,9 +81,11 @@ class OCR:
     _inst_lock = threading.Lock()
 
     def __init__(self):
+        import onnxruntime
+        onnxruntime.disable_telemetry_events()
         from rapidocr import RapidOCR
         logging.getLogger("RapidOCR").setLevel(logging.ERROR)
-        params = dict(THREADS)
+        params = {**THREADS, **local_model_params()}
         self._engine = RapidOCR(params=params)
         self._lock = threading.Lock()
         versions = []

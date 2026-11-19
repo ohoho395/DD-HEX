@@ -105,14 +105,14 @@ def test_cloud_changes_update_live_detector_and_revoke(tmp_path):
     assert det.rarities["1005"] == store.augments["1005"]["rarity"] == "gold"
 
 
-def test_cached_cloud_is_validated_offline(tmp_path, monkeypatch):
+def test_copied_cloud_aliases_are_ignored_offline(tmp_path, monkeypatch):
     path = tmp_path / "cloud.json"
     path.write_text(json.dumps({"augments": {"aliases": {"1005": ["离线名字"]},
                                               "rarity_fix": {"1005": "silver"}}}), encoding="utf-8")
     monkeypatch.setattr(cloud, "_path", lambda: path)
     monkeypatch.setattr(cloud, "_cache", None)
-    assert augment_aliases()["1005"] == ["离线名字"]
-    assert tencent.rarity_fixes()["1005"] == "silver"
+    assert "离线名字" not in augment_aliases().get("1005", [])
+    assert "1005" not in cloud.get()["augments"]["rarity_fix"]
 
 
 def test_open_hero_panel_updates_and_revokes_cloud_rarity(store):

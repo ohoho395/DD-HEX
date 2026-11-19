@@ -29,6 +29,7 @@ from urllib.parse import unquote
 import requests
 
 from .. import DATA_REPO, MIRROR, cloud
+from ..distribution import DATA_RAW_URL
 from . import http
 from .store import DataStore, _read
 
@@ -397,7 +398,7 @@ def download(base_url: str, manifest: dict, dest: Path, timeout: float = 30, pro
 
 class PublicStore(DataStore):
     def __init__(self, root: Path, refresh_hours: float = 6.0, bundled: Path | None = None,
-                 check_updates: bool = True, base_url: str | list[str] | None = None,
+                 check_updates: bool | None = None, base_url: str | list[str] | None = None,
                  tag_hosts=None, tag_fmt: str = DATA_TAG_FMT, event_source=None, managed_official: bool = False):
         super().__init__(root, refresh_hours, managed=managed_official)
         self.bundled = Path(bundled or BUNDLED_DIR)
@@ -409,13 +410,13 @@ class PublicStore(DataStore):
             from .. import cloud
             event_source = cloud.event if base_url is None else (lambda: None)
         self._event_source = event_source
-        self.check_updates = check_updates
+        self.check_updates = bool(base_url is not None) if check_updates is None else check_updates
         if base_url is None:
-            from .. import cloud
-            site = [f"{s}/u/data" for s in cloud.sites()]  # 云控换了官网地址时新的在前，内置在后
-            urls = list(dict.fromkeys([u.rstrip("/") for u in cloud.mirrors("data")] + site + DATA_SOURCES))
+            # Public statistical repository only, after explicit user opt-in.
+            urls = [DATA_RAW_URL]
         else:
             urls = [base_url] if isinstance(base_url, str) else base_url
+        self._default_sources = base_url is None
         self.base_urls = [u.rstrip("/") for u in urls]
         # 默认地址时才按 tag 试探（测试里给了地址就不去连真的 jsDelivr）
         self.tag_hosts = tuple(DATA_TAG_HOSTS if tag_hosts is None and base_url is None else (tag_hosts or ()))
@@ -509,6 +510,9 @@ class PublicStore(DataStore):
         """查数据仓库有没有更新的统计数据，有就下载并换上。下载了新数据返回 True。
         manual=True：用户点了「检查更新」或同意了更新提示，绕过自动更新开关；选人/对局中仍推迟。
         后台查时：正在对局就先不查（打完再查）；关了自动更新只看有没有新的，有就记到 data_offer 等用户点头。"""
+        # Manual refresh does not override the independent release's opt-in.
+        if self._default_sources and not self.check_updates:
+            return False
         if self.hold():
             log.debug("对局中，统计数据更新推迟到打完")
             return False

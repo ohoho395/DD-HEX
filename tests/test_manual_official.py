@@ -50,7 +50,7 @@ def test_manual_check_message(changed, extra):
                             official=official)
     store.sync_official = lambda force=False: DataStore.sync_official(
         SimpleNamespace(official=official, _lock=__import__("threading").RLock(), _heroes={}, last_error=None), force)
-    fake = SimpleNamespace(engine=SimpleNamespace(store=store))
+    fake = SimpleNamespace(engine=SimpleNamespace(store=store, settings=SimpleNamespace(check_data_updates=True)))
     msg = MainWindow._sync_data_now(fake)
     assert msg.startswith("统计数据已是最新（16.21 版本，截至 10-26）。")
     assert official.calls == [True]

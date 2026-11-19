@@ -19,4 +19,4 @@ def test_fresh_account_without_run_key(monkeypatch):
     autostart.set_enabled(False)
     assert calls == []  # 关闭时不创建空项、更不会默认启用
     autostart.set_enabled(True)
-    assert calls[0][1] == "AramHex" and "--minimized" in calls[0][-1]
+    assert calls[0][1] == "DD HEX" and "--minimized" in calls[0][-1]

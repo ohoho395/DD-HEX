@@ -37,11 +37,11 @@ def test_overlay_stays_visible_while_reroll_is_evaluated(store, tmp_path, monkey
     evaluate = module.recommend.evaluate
     errors = []
 
-    def slow_evaluation(*args):
+    def slow_evaluation(*args, **kwargs):
         started.set()
         if not release.wait(5):
             raise TimeoutError("test did not release scoring")
-        return evaluate(*args)
+        return evaluate(*args, **kwargs)
 
     def publish():
         try:
@@ -85,9 +85,9 @@ def test_pending_reroll_cannot_overwrite_newer_state(store, tmp_path, monkeypatc
     active = False
     expected = []
 
-    def change_while_scoring(*args):
+    def change_while_scoring(*args, **kwargs):
         nonlocal active
-        result = original(*args)
+        result = original(*args, **kwargs)
         if not active:
             active = True
             if change == "close":
@@ -114,8 +114,8 @@ def test_first_offer_closed_during_scoring_does_not_reappear(store, tmp_path, mo
     engine._set(phase="ingame", hero_id="17")
     original = module.recommend.evaluate
 
-    def close_while_scoring(*args):
-        result = original(*args)
+    def close_while_scoring(*args, **kwargs):
+        result = original(*args, **kwargs)
         engine._on_offer(None)
         return result
 

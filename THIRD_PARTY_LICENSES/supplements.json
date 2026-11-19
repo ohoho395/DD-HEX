@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "files": [
+    {
+      "path": "pyside6-essentials/LGPL-3.0-only.txt",
+      "source": "https://raw.githubusercontent.com/qt/qtbase/dev/LICENSES/LGPL-3.0-only.txt",
+      "retrieved_on": "2026-11-19",
+      "sha256": "da7eabb7bafdf7d3ae5e9f223aa5bdc1eece45ac569dc21b3b037520b4464768"
+    },
+    {
+      "path": "pyside6-essentials/GPL-3.0-only.txt",
+      "source": "https://raw.githubusercontent.com/qt/qtbase/dev/LICENSES/GPL-3.0-only.txt",
+      "retrieved_on": "2026-11-19",
+      "sha256": "8ceb4b9ee5adedde47b31e975c1d90c73ad27b6b165a1dcd80c7c545eb65b903"
+    },
+    {
+      "path": "rapidocr/LICENSE",
+      "source": "https://raw.githubusercontent.com/RapidAI/RapidOCR/main/LICENSE",
+      "retrieved_on": "2026-11-19",
+      "sha256": "3e0af25fdd06aa9586ae97adb00ea927ebe5a3805ac77d2d3a81ce5f55693333"
+    },
+    {
+      "path": "paddleocr/LICENSE",
+      "source": "https://raw.githubusercontent.com/PaddlePaddle/PaddleOCR/main/LICENSE",
+      "retrieved_on": "2026-11-19",
+      "sha256": "3840c5c0c61c294264d2dd77b8777be6ddd90121ef4e0e64abcd22edea581d6e"
+    },
+    {
+      "path": "flatbuffers/LICENSE",
+      "source": "https://raw.githubusercontent.com/google/flatbuffers/master/LICENSE",
+      "retrieved_on": "2026-11-19",
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+    }
+  ]
+}

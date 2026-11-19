@@ -125,7 +125,7 @@ def _isolated_home(monkeypatch, tmp_path):
     """每个测试用自己的临时数据目录和空的云控缓存，不读开发机上真的 cloud.json / config.json。
     要固定目录的用例自己再 setenv 覆盖。"""
     from lolhex import cloud
-    monkeypatch.setenv("ARAMHEX_HOME", str(tmp_path / "_home"))
+    monkeypatch.setenv("DDHEX_HOME", str(tmp_path / "_home"))
     monkeypatch.setattr(cloud, "_cache", None)
 
 

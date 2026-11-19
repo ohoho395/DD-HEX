@@ -68,7 +68,7 @@ def test_load_config_with_bom(tmp_path):
     p = tmp_path / "config.json"
     p.write_bytes(b"\xef\xbb\xbf" + '{"game_lang": "ko_KR", "send_usage": false, "install_id": "0123456789abcdef"}'.encode())
     s = Settings.load(p)
-    assert s.game_lang == "zh_CN" and s.send_usage is False  # 韩服 1.1.4 起不支持，按中文 and s.install_id == "0123456789abcdef"
+    assert s.game_lang == "zh_CN" and s.send_usage is False  # 韩服 1.1.4 起不支持，按中文 and s.install_id == ""
 
 
 def test_unwritable_or_broken_config_never_crashes(tmp_path, monkeypatch):
@@ -83,10 +83,10 @@ def test_unwritable_or_broken_config_never_crashes(tmp_path, monkeypatch):
         return real(self, *a, **k)
     monkeypatch.setattr(type(p), "write_text", deny)
     s = Settings.load(p)
-    assert s.badge_position == "bottom" and len(s.install_id) == 16 and s.save(p) is False
+    assert s.badge_position == "bottom" and s.install_id == "" and s.save(p) is False
     monkeypatch.setattr(type(p), "write_text", real)
     # 设置文件实在读不懂：原文件备份成 .broken，这次不发匿名编号（能从原文看出用户的选择就照它的）
-    for bad, usage in (("{坏了", False), ('{"send_usage": true, 坏了', True), ("[1, 2]", False)):
+    for bad, usage in (("{坏了", False), ('{"send_usage": true, 坏了', False), ("[1, 2]", False)):
         p.write_text(bad, encoding="utf-8")
         s = Settings.load(p)
         backup = p.with_name("config.json.broken")
@@ -100,12 +100,12 @@ def test_hand_edited_config_common_mistakes(tmp_path):
     p = tmp_path / "config.json"
     p.write_bytes('{"riot_id": "提莫#12345", "send_usage": false, "install_id": "0123456789abcdef",}'.encode("gbk"))
     s = Settings.load(p)
-    assert s.send_usage is False and s.riot_id == "提莫#12345" and s.install_id == "0123456789abcdef"
+    assert s.send_usage is False and s.riot_id == "提莫#12345" and s.install_id == ""
     assert not p.with_name("config.json.broken").exists()
     # 编号被改成别的类型：重新生成（不然请求头发不出去）
     p.write_text('{"install_id": 123, "send_usage": "false"}', encoding="utf-8")
     s = Settings.load(p)
-    assert len(s.install_id) == 16 and s.install_id != "123" and s.send_usage is False
+    assert s.install_id == "" and s.install_id != "123" and s.send_usage is False
 
 
 def test_broken_config_backups_kept_and_unknown_usage_off(tmp_path):
@@ -115,7 +115,7 @@ def test_broken_config_backups_kept_and_unknown_usage_off(tmp_path):
         Settings.load(p)
     kept = sorted(x.read_text(encoding="utf-8") for x in tmp_path.glob("config.json.broken*"))
     assert kept == ["{坏了1", "{坏了2"]                      # 连续两次坏：两份备份都在
-    for v, want in (("null", False), ('"off"', False), ('"yes"', True), ("0", False)):
+    for v, want in (("null", False), ('"off"', False), ('"yes"', False), ("0", False)):
         p.write_text('{"send_usage": %s}' % v, encoding="utf-8")
         assert Settings.load(p).send_usage is want             # 认不出的值当关了
 
@@ -130,12 +130,12 @@ def test_removed_liveclient_setting_dropped(tmp_path):
     assert "use_liveclient" not in json.loads(p.read_text(encoding="utf-8"))
 
 
-def test_show_winrate_always_on(tmp_path):
+def test_show_winrate_preference_preserved(tmp_path):
     # 1.1.1：设置页去掉「显示胜率数字」，以前关掉的也打开（不然再也打不开）
     p = tmp_path / "config.json"
     p.write_text(json.dumps({"show_winrate": False, "overlay": False}), encoding="utf-8")
     s = Settings.load(p)
-    assert s.show_winrate is True and s.overlay is False  # 浮窗还能在托盘菜单里开关，保留玩家的选择
+    assert s.show_winrate is False and s.overlay is False  # 浮窗还能在托盘菜单里开关，保留玩家的选择
 
 
 def test_old_auto_screenshot_dropped(tmp_path):

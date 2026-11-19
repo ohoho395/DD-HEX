@@ -1,32 +1,7 @@
-"""云控配置：aramhex.com/config.json（网站和软件共用，改了不用发版）。
+"""Local compatibility configuration for DD HEX.
 
-    downloads   网盘链接 {setup, portable}（每次发版会换）
-    community   社区入口列表 [{name, text, url, qr, primary}]：QQ 群、B 站、赞助……
-                软件「关于」里全部列出；primary 的那条在主界面顶部显示成按钮（网站同理）
-    notice      公告 {id, text, url}：同一个 id 只弹一次
-    min_version 低于这个版本必须更新
-    rank        查分 {enabled, api, message}：可以远程关掉查询
-    event       当前活动 {mode, label, start, end}：例如 first-prismatic「首次必棱彩」，活动期间改用这个规则的统计数据
-    mirrors     额外线路 {update: [".../{version}"], data: [...]}：换服务器、加线路不用发版，排在内置线路前面
-    features    功能开关 {名字: true/false}（1.1.2）：新做法出问题时云控关掉、退回 1.1.1 的老做法，不用发版。
-                没写 / 连不上 = 开。title_priority 整块扫描先读标题；same_name_once 同一行同名海克斯只算一张；
-                overlay_fit 分数缩放时浮层收回多出的 1 像素、不反复重摆；cards_drop_early 选完英雄卡马上撤卡下胜率；
-                companion_last_fg 客户端被别的程序盖着时点浮窗，不再把标注画到那个程序上
-                four_choice（1.1.8）认四选一、第一次认出没认全时整块核对布局；关掉按三选一认（1.1.5 的认法）
-                panel_no_activate（1.1.9）点浮窗图标、详情不抢前台，只有点进搜英雄的输入框才抢；关掉退回 1.1.8（点了就抢、点完还回去）
-    update      检查频率和分批推送（1.1.0 起）：
-                  check_minutes   多久查一次云控和新版本（默认 180，30–1440）；启动时、手动「检查更新」照常查
-                  data_minutes    多久查一次统计数据（默认 360，60–1440）
-                  official_minutes 官方资料检查（0 关闭，60 一小时，43200 三十天）；只从 mirrors.official 更新
-                  rollout_version / rollout_percent  这个版本先只提示一部分人（0–100）。按本机随机编号分组，
-                                  同一台电脑分组固定，把比例调大，之前提示过的人仍在里面
-                  paused          true 时暂停提示新版本（发现问题时用）；「最低版本」和手动检查不受影响
-
-    site        换官网地址（1.1.3）{urls: ["https://新域名"]}：配置、升级/数据镜像、查分、日志上传、软件里的官网链接
-                都先用这里的地址，内置的 aramhex.com、aramhex.cn 永远排在最后兜底。只收 https://域名[:端口]，最多 3 个。
-                新地址要和老站一样的路径（/config.json、/u/…、/api/rank、/api/logs）。rank.api、logs.url 没写时跟着换
-
-连不上就用上次存下的（app_home/cloud.json），再没有就用内置默认值。
+Parsers and feature helpers are retained for the inherited recognition engine.
+Remote cloud configuration and upstream caches are never loaded or fetched.
 """
 
 from __future__ import annotations
@@ -34,7 +9,6 @@ from __future__ import annotations
 import json
 import logging
 import math
-import re
 import re
 import threading
 import unicodedata
@@ -52,7 +26,7 @@ DEFAULT = {
     "notice": {},
     "min_version": "",
     # as_of：查分库最新数据的日期（1.1.1）；比本机上次查到的新，就自动重查一次
-    "rank": {"enabled": True, "api": f"{WEBSITE}/api/rank", "message": "", "as_of": ""},
+    "rank": {"enabled": False, "api": "", "message": "DD HEX 第一版不提供在线查分，请手动选择分段", "as_of": ""},
     "event": {"mode": "", "label": "", "start": "", "end": ""},
     "mirrors": {"update": [], "data": [], "official": []},
     "features": {},
@@ -67,7 +41,7 @@ DEFAULT = {
     # 开发者点名上传日志（见 logupload.py）：request 里是匿名编号（可带「:单号」）
     # max_kb：上传最近多少 KB 日志（1.1.2，64–4096，默认 512）；当前日志不够长时接着读上一个日志文件
     # verbose：临时记详细日志的电脑 ["<匿名编号>:<单号>"]（1.1.2，每个单号最多 24 小时，不截图，见 logupload.py）
-    "logs": {"url": f"{WEBSITE}/api/logs", "request": [], "max_kb": 512, "verbose": []},
+    "logs": {"url": "", "request": [], "max_kb": 512, "verbose": []},
     "site": {"urls": []},
 }
 _SITE_RE = re.compile(r"https://[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+(:[0-9]{1,5})?")
@@ -77,17 +51,15 @@ _install_id: str | None = None  # 匿名使用统计的编号；关掉时为 Non
 
 
 def set_install_id(value: str | None) -> None:
+    # Compatibility entry point: this fork never stores or transmits an ID.
     global _install_id
-    _install_id = value or None
+    _install_id = None
 
 
 def headers(url: str = "", **extra) -> dict:
-    """软件自己发的请求统一带上版本号；发往本站（aramhex.com）的再带匿名编号（关了使用统计就不带）。
-    GitHub、jsDelivr 等别人的服务器只带版本号。"""
-    h = {"User-Agent": f"aramhex/{__version__}", **extra}
-    if _install_id and own(url):
-        h["X-AramHex-Id"] = _install_id  # 只用来数「同一台电脑是不是一直在用」
-    return h
+    """Version identification only; copied settings cannot enable telemetry."""
+    safe = {k: v for k, v in extra.items() if not k.casefold().startswith("x-aramhex")}
+    return {"User-Agent": f"ddhex/{__version__}", **safe}
 
 
 def _path():
@@ -171,7 +143,7 @@ def _site_urls(raw) -> list[str]:
 
 def _with_builtin(urls: list[str]) -> list[str]:
     """云控地址在前，再接内置的 aramhex.com 和备用官网，去重。"""
-    return list(dict.fromkeys(urls + [WEBSITE, *BACKUP_SITES]))
+    return list(dict.fromkeys(u for u in urls + [WEBSITE, *BACKUP_SITES] if u))
 
 
 def _owns(url: str, sites: list[str]) -> bool:
@@ -185,8 +157,9 @@ def _merge(raw: dict) -> dict:
     out["site"]["urls"] = _site_urls(raw.get("site"))
     sites = _with_builtin(out["site"]["urls"])
     # 换了官网地址、又没单独写查分和日志地址：跟着新地址走
-    out["rank"]["api"] = f"{sites[0]}/api/rank"
-    out["logs"]["url"] = f"{sites[0]}/api/logs"
+    if sites:
+        out["rank"]["api"] = f"{sites[0]}/api/rank"
+        out["logs"]["url"] = f"{sites[0]}/api/logs"
     for k, v in raw.items():
         if k == "site":
             continue
@@ -244,26 +217,24 @@ def get() -> dict:
     global _cache
     with _lock:
         if _cache is None:
-            try:
-                _cache = _merge(json.loads(_path().read_text(encoding="utf-8")))
-            except Exception:  # 存下的云控坏了：按内置默认值，下次联网再取
-                _cache = _merge({})
+            # Never import upstream cloud.json, even from a copied data folder.
+            _cache = _merge({})
         return _cache
 
 
 def sites() -> list[str]:
     """官网地址：云控 site.urls 在前，内置 aramhex.com、备用官网永远在最后。"""
-    return _with_builtin((get().get("site") or {}).get("urls", []))
+    return []
 
 
 def site() -> str:
-    """现在用的官网地址（软件里的官网、帮助、下载链接）。"""
-    return sites()[0]
+    """No application service is configured in this independent release."""
+    return ""
 
 
 def own(url: str) -> bool:
-    """是不是发往我们自己官网的请求（带匿名编号、允许上传日志）。"""
-    return _owns(url, sites())
+    """Remote telemetry is permanently disabled in this release."""
+    return False
 
 
 def mirrors(kind: str) -> list[str]:
@@ -345,26 +316,5 @@ def feature(name: str, default: bool = True) -> bool:
 
 def refresh(timeout: float = 6, url: str | None = None) -> dict:
     """联网取最新配置并存下来；失败就返回上次的。没指定地址时按 sites() 的顺序一个个试（云控换的新官网在前）。"""
-    global _cache
-    raw = None
-    for u in [url] if url else [f"{s}/config.json" for s in sites()]:
-        try:
-            r = requests.get(u, headers=headers(u), timeout=timeout)
-            r.raise_for_status()
-            raw = r.json()
-            if not isinstance(raw, dict):
-                raise ValueError("格式不对")
-            break
-        except (requests.RequestException, ValueError) as e:
-            log.info("取云控配置失败：%s %s", u, e)
-            raw = None
-    if raw is None:
-        return get()
-    cfg = _merge(raw)
-    with _lock:
-        _cache = cfg
-    try:
-        _path().write_text(json.dumps(raw, ensure_ascii=False), encoding="utf-8")
-    except OSError:
-        pass
-    return cfg
+    # Preserve the compatibility API without loading or fetching remote control.
+    return get()

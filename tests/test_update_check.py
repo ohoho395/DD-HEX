@@ -55,6 +55,12 @@ class FakeButton:
         self.text = t
 
 
+@pytest.fixture(autouse=True)
+def qt_application():
+    app = mainwindow.QApplication.instance() or mainwindow.QApplication([])
+    yield app
+
+
 def _win():
     shown = []
     win = SimpleNamespace(
@@ -81,6 +87,8 @@ def _win():
 def boxes(monkeypatch):
     said = []
     monkeypatch.setattr(mainwindow, "UpdateWorker", FakeWorker)
+    # These cases exercise the retained updater after configuring our own source.
+    monkeypatch.setattr(mainwindow.update, "enabled", lambda: True)
     FakeWorker.started = []
     monkeypatch.setattr(mainwindow.QMessageBox, "information", lambda parent, title, text: said.append(text))
     return said
@@ -98,7 +106,7 @@ def test_check_skips_while_previous_still_running(boxes):
 
 def test_tray_notice_once_per_version():
     win, shown = _win()
-    info = {"version": "0.3.31", "file": "AramHex-Setup-0.3.31.exe", "sha256": "0" * 64, "url": "http://x/a.exe"}
+    info = {"version": "0.3.31", "file": "DDHEX-Setup-0.3.31.exe", "sha256": "0" * 64, "url": "http://x/a.exe"}
     win._update_found(info)
     win._update_found(dict(info))  # 半小时后又查到同一个版本：只更新横条，不再弹通知
     win._update_found({**info, "version": "0.3.32"})
@@ -123,7 +131,7 @@ def test_manual_check_reports_every_outcome(boxes, monkeypatch):
     win._worker.running = False
     monkeypatch.setattr(mainwindow.QMessageBox, "question", lambda *a: mainwindow.QMessageBox.Yes)
     win.check_update(manual=True)
-    FakeWorker.started[-1].found.emit({"version": "9.9.9", "file": "AramHex-Setup-9.9.9.exe", "sha256": "0" * 64})
+    FakeWorker.started[-1].found.emit({"version": "9.9.9", "file": "DDHEX-Setup-9.9.9.exe", "sha256": "0" * 64})
     assert shown[-1] == "开始下载"  # 用户点"是"直接下载，不再弹托盘通知
 
 def test_mirror_result_offers_download_page():
@@ -131,7 +139,7 @@ def test_mirror_result_offers_download_page():
     win, _ = _win()
     win._update_found({"version": "9.9.9", "file": None, "sha256": None, "url": None, "page": "p", "mirror": True})
     assert win.btn_update.text == "去下载"
-    win._update_found({"version": "9.9.10", "file": "AramHex-Setup-9.9.10.exe", "sha256": "0" * 64, "url": "u"})
+    win._update_found({"version": "9.9.10", "file": "DDHEX-Setup-9.9.10.exe", "sha256": "0" * 64, "url": "u"})
     assert win.btn_update.text in ("立即更新", "去下载")  # 便携版跑测试时也是「去下载」
 
 
@@ -157,7 +165,7 @@ def test_rollout_holds_back_timed_prompt_only(monkeypatch):
     # 分批推送：没轮到的电脑定时检查不提示；手动检查、低于最低版本照常提示
     from lolhex import cloud
     win, shown = _win()
-    info = {"version": "9.9.9", "file": "AramHex-Setup-9.9.9.exe", "sha256": "0" * 64, "url": "http://x/a.exe"}
+    info = {"version": "9.9.9", "file": "DDHEX-Setup-9.9.9.exe", "sha256": "0" * 64, "url": "http://x/a.exe"}
     cfg = cloud._merge({"update": {"rollout_version": "9.9.9", "rollout_percent": 0}})
     monkeypatch.setattr(cloud, "get", lambda: cfg)
     win._update_found(info)
@@ -199,7 +207,7 @@ def test_no_popups_in_champ_select_or_stacked(monkeypatch):
 @pytest.mark.parametrize("snap", [{"phase": "ingame"}, {"phase": "client", "champ_select": {"bench": []}}])
 def test_update_waits_while_in_game_or_champ_select(boxes, monkeypatch, snap):
     """选英雄时点「立即更新」：重启那几十秒错过选英雄界面，这局就认不出英雄（1.1.4）。"""
-    monkeypatch.setattr(mainwindow.patch, "install_root", lambda: "C:/AramHex")
+    monkeypatch.setattr(mainwindow.patch, "install_root", lambda: "C:/DD HEX")
     win, _ = _win()
     win._update_info = {"version": "9.9.9", "url": "x"}
     win.engine.snapshot = lambda: snap

@@ -3,16 +3,24 @@
 from __future__ import annotations
 
 import sys
+import subprocess
+
+from ..config import program_dir
 
 KEY = r"Software\Microsoft\Windows\CurrentVersion\Run"
-NAME = "AramHex"
+NAME = "DD HEX"
 
 
 def _command() -> str:
     if getattr(sys, "frozen", False):
         return f'"{sys.executable}" --minimized'
+    launcher = program_dir() / "DD HEX.exe"
+    if (program_dir() / "portable.txt").is_file() and launcher.is_file():
+        return subprocess.list2cmdline([str(launcher), "--minimized"])
     exe = sys.executable.replace("python.exe", "pythonw.exe")
-    return f'"{exe}" -m lolhex --minimized'
+    # Windows 登录时工作目录不在源码仓库，显式定位本版本，避免导入失败或误载别的 lolhex。
+    script = f"import sys; sys.path.insert(0, {str(program_dir())!r}); from lolhex.__main__ import main; main()"
+    return subprocess.list2cmdline([exe, "-c", script, "--minimized"])
 
 
 def is_enabled() -> bool:

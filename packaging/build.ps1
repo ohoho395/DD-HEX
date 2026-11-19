@@ -1,12 +1,12 @@
 # 打包：PyInstaller 生成程序目录 → GUI 自检 → Inno Setup 安装版 + 便携版 ZIP + SHA256SUMS.txt。
 # 用法（PowerShell 7）：pwsh -NoProfile -File packaging/build.ps1 [-PythonExe <python>] [-InnoCompiler <ISCC.exe>] [-PortableOnly] [-TestTag test.1]
 # -PortableOnly：只出便携版（测试版自己用，不需要 Inno Setup）
-# -TestTag：测试包一定要带，版本号变成「1.1.3-test.1」，比正式版 1.1.3 旧，正式版一发就会提示更新。
+# -TestTag：测试包可带独立版本后缀，例如「0.1.0-test.1」。
 #           测试包自动附带空的 debug.txt，解压运行即开启详细日志和自动截图。
-#           以前测试包和正式版同号，测过的人收不到正式版的更新提示（1.1.2 正式发布时有 32 台）
-# 输出：build/release/AramHex-Setup-<版本>.exe、AramHex-Portable-<版本>.zip、SHA256SUMS.txt
+# 输出：build/release/DDHEX-Setup-<版本>.exe、DDHEX-Portable-<版本>.zip、SHA256SUMS.txt
 param([string]$PythonExe, [string]$InnoCompiler, [switch]$PortableOnly, [string]$TestTag)
 $ErrorActionPreference = 'Stop'
+if (-not $IsWindows) { throw 'Windows EXE 必须在 Windows 10/11 x64 上构建（PowerShell 7）。' }
 $env:PYTHONUTF8 = '1'  # 控制台不是 UTF-8 时（如 GitHub 的 Windows 构建机）输出中文也不能崩
 $root = Split-Path -Parent $PSScriptRoot
 Set-Location $root
@@ -33,6 +33,15 @@ if (-not (Test-Path (Join-Path $root 'lolhex\data\bundled\latest.json'))) {
 & $py -c "from lolhex.data.public import Dataset, BUNDLED_DIR; d = Dataset(BUNDLED_DIR, 'bundled'); print('内置数据', d.patch, d.snapshot_at)"
 if ($LASTEXITCODE) { throw '内置统计数据校验失败' }
 
+# Refuse an incomplete distribution rather than silently omitting attribution.
+& $py packaging/collect_licenses.py --output THIRD_PARTY_LICENSES
+if ($LASTEXITCODE) { throw '收集当前构建环境的第三方许可证失败' }
+$legalFiles = @('LICENSE', 'NOTICE.md', 'PRIVACY.md', 'README.md', 'DATA-LICENSE-CC-BY-NC-4.0.txt', 'docs/WINDOWS.md')
+foreach ($name in $legalFiles) {
+    if (-not (Test-Path -LiteralPath (Join-Path $root $name))) { throw "缺少分发文档：$name" }
+}
+if (-not (Test-Path -LiteralPath (Join-Path $root 'THIRD_PARTY_LICENSES'))) { throw '缺少第三方许可证目录' }
+
 $originalPath = $env:PATH
 $originalPythonPath = $env:PYTHONPATH
 $originalPyinstallerConfig = $env:PYINSTALLER_CONFIG_DIR
@@ -52,12 +61,12 @@ try {
     $env:PYINSTALLER_CONFIG_DIR = $originalPyinstallerConfig
 }
 if ($code) { throw 'PyInstaller 打包失败' }
-$dist = Join-Path $root 'build\dist\AramHex'
+$dist = Join-Path $root 'build\dist\DD HEX'
 
 # 真实 Windows 窗口插件下跑一遍 Qt（QtCore/Gui/Widgets/Network），再跑一遍 OpenCV 和文字识别
 $report = Join-Path $root 'build\gui-smoke.json'
 if (Test-Path -LiteralPath $report) { Remove-Item -LiteralPath $report }
-$smoke = Start-Process -FilePath (Join-Path $dist 'AramHex.exe') -ArgumentList @('--self-test-gui', ('"' + $report + '"')) -WindowStyle Hidden -PassThru
+$smoke = Start-Process -FilePath (Join-Path $dist 'DD HEX.exe') -ArgumentList @('--self-test-gui', ('"' + $report + '"')) -WindowStyle Hidden -PassThru
 if (-not $smoke.WaitForExit(180000)) { $smoke.Kill(); throw '自检超时' }
 if ($smoke.ExitCode -ne 0 -or -not (Test-Path -LiteralPath $report)) { throw 'Qt GUI 自检失败，不生成安装包' }
 $gui = Get-Content -Raw -Encoding UTF8 -LiteralPath $report | ConvertFrom-Json
@@ -68,6 +77,14 @@ if ($TestTag) {
     # 放进同一份程序目录，测试安装版和便携版都默认开启调试；运行时已经支持这个标记。
     [IO.File]::WriteAllBytes((Join-Path $dist 'debug.txt'), [byte[]]@())
 }
+
+# Keep user-readable legal notices beside the executable in both distributions.
+foreach ($name in $legalFiles) {
+    $target = Join-Path $dist $name
+    New-Item -ItemType Directory -Force -Path (Split-Path -Parent $target) | Out-Null
+    Copy-Item -LiteralPath (Join-Path $root $name) -Destination $target -Force
+}
+Copy-Item -Recurse -Force -LiteralPath (Join-Path $root 'THIRD_PARTY_LICENSES') -Destination $dist
 
 $setup = $null
 if (-not $PortableOnly) {
@@ -83,22 +100,22 @@ $out = Join-Path $root 'build\release'
 if (Test-Path $out) { Remove-Item -Recurse -Force $out }
 New-Item -ItemType Directory -Path $out | Out-Null
 if (-not $PortableOnly) {
-    $setup = "AramHex-Setup-$version.exe"
+    $setup = "DDHEX-Setup-$version.exe"
     Copy-Item (Join-Path $root "build\installer\$setup") (Join-Path $out $setup)
 }
 
 # 便携版：同一份程序目录 + portable.txt（有它时配置、日志、数据都放在程序目录的 userdata 下）
-$stage = Join-Path $root "build\portable\AramHex-$version"
+$stage = Join-Path $root "build\portable\DD HEX-$version"
 if (Test-Path $stage) { Remove-Item -Recurse -Force $stage }
 New-Item -ItemType Directory -Path $stage | Out-Null
 Copy-Item -Recurse (Join-Path $dist '*') $stage
 Set-Content -LiteralPath (Join-Path $stage 'portable.txt') -Encoding utf8 -Value @'
 这是便携版：配置、日志和下载的数据都放在本目录的 userdata 文件夹里，不写系统目录。
-删除整个文件夹即可卸载。有新版本时助手会提示，请到 GitHub 下载新的便携版替换。
-https://github.com/czgreat/aramhex/releases
+删除整个文件夹即可卸载。请从此独立版本的维护者处获取新版，退出后替换程序文件，保留 userdata。
+默认离线，不连接原作者的更新或统计服务。内置统计数据仅限非商业使用，详见 NOTICE.md。
 '@
 Copy-Item (Join-Path $root 'LICENSE') $stage
-$zip = "AramHex-Portable-$version.zip"
+$zip = "DDHEX-Portable-$version.zip"
 Compress-Archive -Path $stage -DestinationPath (Join-Path $out $zip) -CompressionLevel Optimal
 
 $sums = foreach ($name in @($setup, $zip) | Where-Object { $_ }) {

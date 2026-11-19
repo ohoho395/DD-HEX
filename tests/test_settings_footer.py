@@ -11,7 +11,7 @@ from PySide6.QtTest import QTest
 
 @pytest.fixture
 def mw(tmp_path, monkeypatch):
-    monkeypatch.setenv("ARAMHEX_HOME", str(tmp_path))
+    monkeypatch.setenv("DDHEX_HOME", str(tmp_path))
     # 其他 GUI 测试遗留的首次欢迎定时器也可能在 processEvents 时触发。
     monkeypatch.setattr(QtWidgets.QMessageBox, "information", staticmethod(lambda *a, **k: None))
     app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
@@ -79,7 +79,7 @@ def test_default_window_shows_every_setting_without_scrolling(mw):
     settle()
     form = mw.tabs.widget(2).findChild(QtWidgets.QScrollArea)
     assert form.verticalScrollBar().maximum() == 0
-    for widget in (mw.set_lang, mw.set_hotkey, mw.set_badge, mw.badge_preview, mw.set_usage, mw.rank_input, mw.btn_check):
+    for widget in (mw.set_lang, mw.set_hotkey, mw.set_badge, mw.badge_preview, mw.set_winrate, mw.set_smoothing, mw.set_reliable, mw.btn_check):
         fully_visible(widget)
 
 
@@ -93,9 +93,9 @@ def test_scrolling_form_does_not_move_footer(mw):
     assert bar.maximum() > 0
     bar.setValue(bar.maximum())
     settle()
-    bar.setValue(mw.rank_input.mapTo(form.widget(), QPoint()).y())
+    bar.setValue(mw.set_reliable.mapTo(form.widget(), QPoint()).y())
     settle()
-    fully_visible(mw.rank_input)
+    fully_visible(mw.set_reliable)
     fully_visible(mw.btn_check)
     assert mw.btn_check.mapTo(mw, QPoint()) == position
     bar.setValue(0)

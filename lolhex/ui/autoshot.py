@@ -107,3 +107,35 @@ class AutoShot:
         files = sorted(shots_dir().glob("*.png"))
         for old in files[:-KEEP]:
             old.unlink(missing_ok=True)
+
+
+def clear_saved_screenshots(home: Path) -> tuple[int, int]:
+    """Delete only files named by the two screenshot writers. Return deleted and failed counts."""
+    import re
+
+    deleted = failed = 0
+    for dirname, pattern in (
+        ("shots", r"offer_[0-9]{8}_[0-9]{6}\.jpg"),
+        ("screenshots", r"[0-9]{8}-[0-9]{6}-[0-9]{3}(?:-[0-9]+)?-(?:三选一|选英雄)\.png"),
+    ):
+        folder = home / dirname
+        try:
+            if folder.is_symlink() or folder.is_junction():
+                failed += 1
+                continue
+            for file in folder.iterdir():
+                if not re.fullmatch(pattern, file.name):
+                    continue
+                try:
+                    if not file.is_symlink() and file.is_file():
+                        file.unlink()
+                        deleted += 1
+                except FileNotFoundError:
+                    pass  # The automatic retention limit may already have removed it.
+                except OSError:
+                    failed += 1
+        except FileNotFoundError:
+            pass
+        except OSError:
+            failed += 1
+    return deleted, failed

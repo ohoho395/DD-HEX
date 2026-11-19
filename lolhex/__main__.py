@@ -37,7 +37,7 @@ def _fix_stdio() -> None:
 def _setup_logging(debug: bool) -> None:
     home = app_home()
     handlers = [logging.StreamHandler(sys.stderr),
-                RotatingFileHandler(home / "aramhex.log", maxBytes=20 * 1024 * 1024, backupCount=3, encoding="utf-8")]
+                RotatingFileHandler(home / "ddhex.log", maxBytes=20 * 1024 * 1024, backupCount=3, encoding="utf-8")]
     logging.basicConfig(level=logging.DEBUG if debug else logging.INFO, handlers=handlers,
                         format="%(asctime)s %(levelname)s %(name)s: %(message)s", force=True)
     for noisy in ("urllib3", "RapidOCR"):
@@ -63,7 +63,8 @@ def _scan_image(engine, path: str, hero: str | None) -> int:
         print("没有识别到三选一画面。")
         return 1
     hid = engine.store.resolve_hero(hero) if hero else None
-    ev = recommend.evaluate(engine.store, hid, offer.slots, engine.settings.smoothing_games)
+    ev = recommend.evaluate(engine.store, hid, offer.slots, engine.settings.smoothing_games,
+                            reliable_games=engine.settings.reliable_games)
     out = {"size": [img.shape[1], img.shape[0]], "texts": offer.texts, "slots": offer.slots,
            "calibration": det.calibration.boxes if det.calibration else None,
            "advice": ev["advice"],
@@ -73,8 +74,40 @@ def _scan_image(engine, path: str, hero: str | None) -> int:
     return 0
 
 
+def _demo(engine, hero: str | None, augments: str | None) -> int:
+    """离线演示使用内置快照和同一评分模块，不启动截屏线程。"""
+    from . import recommend
+    engine.store.check_updates = False
+    engine.store.refresh()
+    hid = engine.store.resolve_hero(hero or "提莫")
+    if not hid:
+        print("找不到英雄：", hero)
+        return 2
+    if augments:
+        names = [x.strip() for x in augments.split(",")]
+        by_name = {a.get("name"): aid for aid, a in engine.store.augments.items()}
+        slots = [x if x in engine.store.augments else by_name.get(x) for x in names]
+        if len(slots) not in (3, 4) or not all(slots):
+            print("请提供 3 或 4 个有效的海克斯 ID 或中文名，以英文逗号分隔。")
+            return 2
+    else:
+        stats = (engine.store.win_data(hid, allow_network=False) or {}).get("augments") or {}
+        slots = [aid for aid in sorted(stats, key=lambda a: -(stats[a].get("games") or 0))
+                 if aid in engine.store.augments][:3]
+        if len(slots) < 3:
+            print("该英雄内置统计不足，请使用 --augments 指定海克斯。")
+            return 2
+    evaluation = recommend.evaluate(engine.store, hid, slots, engine.settings.smoothing_games,
+                                    reliable_games=engine.settings.reliable_games)
+    print(json.dumps({"app": "DD HEX", "demo": True, "data": engine.store.status(),
+                      "evaluation": evaluation}, ensure_ascii=False, indent=2))
+    return 0
+
+
 def main(argv=None) -> int:
-    ap = argparse.ArgumentParser(prog="lolhex", description="海克斯大乱斗助手")
+    ap = argparse.ArgumentParser(prog="lolhex", description="DD HEX 海克斯助手")
+    ap.add_argument("--demo", action="store_true", help="用内置数据离线演示推荐，不截屏")
+    ap.add_argument("--augments", help="配合 --demo，3 或 4 个海克斯 ID/中文名，英文逗号分隔")
     ap.add_argument("--headless", action="store_true")
     ap.add_argument("--refresh", action="store_true")
     ap.add_argument("--scan-image")
@@ -114,6 +147,8 @@ def main(argv=None) -> int:
 
     from .engine import Engine
 
+    if args.demo:
+        return _demo(Engine(settings), args.hero, args.augments)
     if args.refresh:
         engine = Engine(settings)
         engine.store.refresh(force=True)

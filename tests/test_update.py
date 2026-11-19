@@ -48,10 +48,10 @@ def gh():
 
 
 def _release(base, version="9.9.9", digest=True, sums=False):
-    name = f"AramHex-Setup-{version}.exe"
+    name = f"DDHEX-Setup-{version}.exe"
     assets = [{"name": name, "size": len(BODY), "browser_download_url": f"{base}/dl/{name}",
                **({"digest": "sha256:" + hashlib.sha256(BODY).hexdigest()} if digest else {})},
-              {"name": f"AramHex-Portable-{version}.zip", "size": 1, "browser_download_url": f"{base}/dl/p.zip"}]
+              {"name": f"DDHEX-Portable-{version}.zip", "size": 1, "browser_download_url": f"{base}/dl/p.zip"}]
     if sums:
         assets.append({"name": "SHA256SUMS.txt", "size": 1, "browser_download_url": f"{base}/dl/SHA256SUMS.txt"})
     return {"tag_name": f"v{version}", "body": "修了一些问题", "html_url": f"{base}/release",
@@ -109,9 +109,9 @@ def test_unreachable(monkeypatch):
     def boom(*a, **k):
         raise requests.ConnectionError("连不上 GitHub")
     monkeypatch.setattr(update.requests, "get", boom)
-    assert update.check("1.0.0", mirrors=[], probe_hosts=()) is None  # 自动检查：静默
+    assert update.check("1.0.0", api="https://api.github.com/repos/example/ddhex/releases/latest", mirrors=[], probe_hosts=()) is None  # 自动检查：静默
     with pytest.raises(requests.ConnectionError):
-        update.check("1.0.0", strict=True, mirrors=[], probe_hosts=())
+        update.check("1.0.0", api="https://api.github.com/repos/example/ddhex/releases/latest", strict=True, mirrors=[], probe_hosts=())
 
 
 @pytest.fixture
@@ -229,6 +229,7 @@ def test_build_info_adds_test_tag(tmp_path):
     pkg = tmp_path / "lolhex"
     pkg.mkdir()
     (pkg / "__init__.py").write_text((root / "lolhex" / "__init__.py").read_text(encoding="utf-8"), encoding="utf-8")
+    (pkg / "distribution.py").write_text((root / "lolhex" / "distribution.py").read_text(encoding="utf-8"), encoding="utf-8")
     # 嵌入式 Python 的 ._pth 不自动包含 cwd，显式选择这个临时测试包。
     command = "import sys; sys.path.insert(0, '.'); import lolhex; print(lolhex.__version__)"
     plain = subprocess.run([sys.executable, "-c", command], cwd=tmp_path,

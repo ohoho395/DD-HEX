@@ -1,0 +1,4 @@
+Python 3.13.13 / macOS arm64 / Qt offscreen
+Upstream baseline: 1097 passed, 2 failed, 29 skipped
+HexPilot final: 1112 passed, 29 skipped, 0 failed, 0 errors (38.48s)
+See results.json for skip reasons and timestamps.

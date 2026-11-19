@@ -79,11 +79,11 @@ def pentakill_rates(store, hero_id: str | None) -> dict | None:
     return {"hero": bool(hero_id), "pbe": any(r["augment_id"] in provisional for r in rows), "rows": rows}
 
 
-def pentakill_text(pk: dict | None) -> str:
+def pentakill_text(pk: dict | None, *, show_win: bool = True) -> str:
     """「五杀乐队（本英雄）：Q 51.2%（3200 局）　W …」，界面直接用。"""
     if not pk:
         return ""
-    parts = [f"{r['key']} {r['win'] * 100:.1f}%（{r['games']} 局）" for r in pk["rows"]]
+    parts = [f"{r['key']} " + (f"{r['win'] * 100:.1f}%" if show_win else "") + f"（{r['games']} 局）" for r in pk["rows"]]
     who = "本英雄" if pk["hero"] else "全英雄"
     return f"五杀乐队（{who}{'，测试服数据' if pk['pbe'] else ''}）：" + "　".join(parts)
 
@@ -178,7 +178,8 @@ def _cards(slots) -> str:
     return "四张" if len(slots) == 4 else "三张"
 
 
-def evaluate(store, hero_id: str | None, slots: list[str | None], k: int = 300) -> dict:
+def evaluate(store, hero_id: str | None, slots: list[str | None], k: int = 300,
+             *, reliable_games: int = RELIABLE_GAMES) -> dict:
     # 重算也会由界面点击触发；网络更新交给 Engine 的后台预取。
     hero = store.hero(hero_id, allow_network=False) if hero_id else None
     ag = store.win_data(hero_id, allow_network=False) if hero_id else None
@@ -307,17 +308,17 @@ def evaluate(store, hero_id: str | None, slots: list[str | None], k: int = 300) 
         if r.get("basis") != "hero_win":
             continue
         g = r.get("games_all") or r.get("games") or 0
-        if g < RELIABLE_GAMES:
+        if g < reliable_games:
             # 可信度提示独立于同屏比较：三张都不满 1000 局也不能隐藏样本不足。
             # 分数、候选池和分段综合仍沿用原规则。
             r["sample_warning"] = True
-        if most >= RELIABLE_GAMES and g < most * TOO_FEW_RATIO:
+        if most >= reliable_games and g < most * TOO_FEW_RATIO:
             r["thin"] = "too_few"
             r["reasons"].append(f"只有 {g} 局，比同屏其他海克斯少一个数量级以上，胜率不可信")
-        elif most >= RELIABLE_GAMES and g < RELIABLE_GAMES:
+        elif most >= reliable_games and g < reliable_games:
             r["thin"] = "few"
             r["reasons"].append("同屏有样本充足的海克斯，不作首选")
-        if g < RELIABLE_GAMES and r.get("thin") != "too_few":
+        if g < reliable_games and r.get("thin") != "too_few":
             r["reasons"].append(f"只有 {g} 局，样本偏少，胜率偶然性大，仅供参考")
 
     pool = [r for r in scored if not r.get("thin")] or scored

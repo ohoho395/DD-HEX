@@ -113,11 +113,10 @@ def _check_unique_names(static: dict) -> None:
 
 
 def _min_client(payload: dict) -> str:
-    # 显式声明组合语义的资料依赖 1.1.5 的原序展示和 ordered 标记。
-    # 老客户端会重排，并把无序组合也画成购买顺序，不能向它们下发这种资料。
-    return "1.1.5" if any("ordered" in row
-                          for hero in payload["heroes"]["heroes"].values()
-                          for row in hero["builds"].get("core", [])) else "1.1.2"
+    # DD HEX 0.1.0 already includes the inherited ordered-build semantics.
+    # This minimum belongs to the fork's version line, not upstream AramHex.
+    # Raise it only if a future payload requires a newer DD HEX protocol.
+    return "0.1.0"
 
 
 def create_candidate(static_path: Path, heroes_path: Path, destination: Path) -> dict:

@@ -259,6 +259,7 @@ class Engine:
             if (self._panel_cache[0] == hid and self._panel_cache[1]
                     and getattr(self, "_panel_snapshot", None) is snapshot
                     and getattr(self, "_panel_dataset", None) is dataset
+                    and getattr(self, "_panel_smoothing", None) == self.settings.smoothing_games
                     and getattr(self, "_panel_rarity_rules", None) == rarity_rules):
                 return self._panel_cache[1]
             p = hero_panel(self.store, hid, self.settings.smoothing_games,
@@ -266,6 +267,7 @@ class Engine:
             self._panel_cache = (hid, p)
             self._panel_snapshot = snapshot
             self._panel_dataset = dataset
+            self._panel_smoothing = self.settings.smoothing_games
             self._panel_rarity_rules = rarity_rules
         return p
 
@@ -1046,7 +1048,8 @@ class Engine:
         if not offer:
             return None
         with getattr(self.store, "_lock", nullcontext()):
-            ev = recommend.evaluate(self.store, hid, slots, self.settings.smoothing_games)
+            ev = recommend.evaluate(self.store, hid, slots, self.settings.smoothing_games,
+                                    reliable_games=self.settings.reliable_games)
         context = offer.get("_scan_context")
         if context and (invalid := self._scan_invalid_reason(context)):
             self._discard_scan(self._detector, context, invalid)

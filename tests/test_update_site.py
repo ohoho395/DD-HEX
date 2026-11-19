@@ -20,8 +20,8 @@ class Resp:
 
 @pytest.mark.site
 def test_site_gives_full_info(monkeypatch):
-    j = {"version": "1.0.1", "notes": "修复", "setup": {"name": "AramHex-Setup-1.0.1.exe", "sha256": SHA, "size": 5,
-                                                        "url": "https://github.com/x/AramHex-Setup-1.0.1.exe"}}
+    j = {"version": "1.0.1", "notes": "修复", "setup": {"name": "DDHEX-Setup-1.0.1.exe", "sha256": SHA, "size": 5,
+                                                        "url": "https://github.com/x/DDHEX-Setup-1.0.1.exe"}}
     monkeypatch.setattr(update.requests, "get", lambda url, **k: Resp(j))
     info = update.check("1.0.0", site="https://site/u/latest.json")
     assert info["version"] == "1.0.1" and info["sha256"] == SHA and info["url"].endswith(".exe") and not info["mirror"]
@@ -38,7 +38,7 @@ def test_site_down_falls_back_to_github(monkeypatch):
             return Resp({}, 503)
         raise update.requests.ConnectionError("GitHub 也不通")
     monkeypatch.setattr(update.requests, "get", get)
-    assert update.check("1.0.0", site="https://site/u/latest.json", mirrors=[], probe_hosts=()) is None
+    assert update.check("1.0.0", site="https://site/u/latest.json", api="https://api.github.com/repos/example/ddhex/releases/latest", mirrors=[], probe_hosts=()) is None
     assert calls[0].startswith("https://site") and any("api.github.com" in c for c in calls)
 
 

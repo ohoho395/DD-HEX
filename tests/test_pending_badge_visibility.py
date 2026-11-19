@@ -136,9 +136,9 @@ def test_scoring_delay_hides_confirmed_new_column_until_matching_score(scene, mo
     slots[column] = IDS[3]
     seen = []
 
-    def score(*args):
+    def score(*args, **kwargs):
         seen.append(visible(layer, engine, rect))  # UI timer running inside the scoring interval.
-        return original(*args)
+        return original(*args, **kwargs)
 
     monkeypatch.setattr(module.recommend, 'evaluate', score)
     engine._on_offer(replace(det._stable, slots=slots))
@@ -171,9 +171,9 @@ def test_background_recompute_cannot_unmask_a_new_pending_observation(scene, mon
     det, _, _, rect, _, engine, layer = scene
     original = module.recommend.evaluate
 
-    def score(*args):
+    def score(*args, **kwargs):
         engine._mask_offer_columns((False, True, False))
-        return original(*args)
+        return original(*args, **kwargs)
 
     monkeypatch.setattr(module.recommend, 'evaluate', score)
     assert engine._reevaluate() is None

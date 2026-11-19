@@ -1,6 +1,6 @@
 """运行配置与本地目录。
 
-配置文件：%APPDATA%\\AramHex\\config.json（可用环境变量 ARAMHEX_HOME 改目录）。
+配置文件：%APPDATA%\\DD HEX\\config.json（可用环境变量 DDHEX_HOME 改目录）。
 便携版：程序目录里有 portable.txt 时，配置、日志和数据都放在程序目录的 userdata 下，不写 %APPDATA%。
 首次运行会写出默认值，之后手改即可；未知键保留不动。
 """
@@ -11,14 +11,13 @@ import json
 import logging
 import os
 import re
-import secrets
 import sys
 import threading
 import time
 from dataclasses import asdict, dataclass, field, fields
 from pathlib import Path
 
-APP_DIR_NAME = "AramHex"
+APP_DIR_NAME = "DD HEX"
 # 默认不注册游戏快捷键；系统占用检查无法发现游戏内部的录像等键位。
 DEFAULT_OVERLAY_HOTKEY = ""
 # 去掉的设置项：老设置文件里有也不再写回（1.1.1 删了 2999 接口；浮窗不再对截图隐身，录屏开关也删了；
@@ -44,7 +43,7 @@ def is_portable() -> bool:
 
 
 def app_home() -> Path:
-    env = os.environ.get("ARAMHEX_HOME")
+    env = os.environ.get("DDHEX_HOME")
     if env:
         home = Path(env)
     elif is_portable():
@@ -81,7 +80,7 @@ class Settings:
     # 腾讯官方资料（英雄、海克斯字典、出装、加点）的刷新间隔（小时）。
     refresh_hours: float = 6.0
     # 启动时检查数据仓库有没有新的统计数据，有就下载（按 SHA-256 校验）。
-    check_data_updates: bool = True
+    check_data_updates: bool = False
     # 已校准时，检查三张卡标题区域的间隔（毫秒）。
     scan_interval_ms: int = 300
     # 已校准、没在选海克斯时（三选一关掉 5 秒后）的检查间隔（毫秒）；认出来再按上面那个快扫。
@@ -147,6 +146,8 @@ class Settings:
     scan_when_mode_unknown: bool = True
     # 小样本平滑强度：先验场次 k。
     smoothing_games: int = 300
+    # 首选候选的最低场次；相对样本不足规则仍保留。范围 100–100000。
+    reliable_games: int = 1000
     # 悬浮层开关（--headless 也会关闭）。
     overlay: bool = True
     # 对局中收起详情后隐藏按钮窗口，鼠标移到原位置附近再显示；选人、三选一标签和手动选英雄提示照常显示。
@@ -177,7 +178,7 @@ class Settings:
     # 匿名使用统计：第一次打开时随机生成的编号（和硬件、账号无关，重装就是新的），发往 aramhex.com 的请求带上（见 cloud.headers）。
     # 界面上不显示；要关就把 config.json 里的 send_usage 改成 false
     install_id: str = ""
-    send_usage: bool = True
+    send_usage: bool = False
     # 玩家自己在设置里改过的项（1.1.1）：云控改默认值时不碰这些（见 cloudsettings.py）
     user_set: list = field(default_factory=list)
     extra: dict = field(default_factory=dict)
@@ -232,10 +233,15 @@ class Settings:
             s.user_set = [f.name for f in fields(cls) if f.name in data and f.name not in ("extra", "user_set")
                           and getattr(s, f.name) != getattr(dflt, f.name)]
         s.fresh_install = not data and not broken  # 没有设置文件：第一次装（用来区分「刚安装」和「刚更新」）
-        if not isinstance(s.install_id, str) or not re.fullmatch(r"[0-9a-f]{16}", s.install_id):
-            s.install_id = ""  # 手改坏了：重新生成（不是字符串时请求头发不出去）
-        if not isinstance(s.send_usage, bool):
-            s.send_usage = str(s.send_usage).strip().lower() in ("true", "1", "yes", "on")  # 认不出就当关了
+        # 不沿用原版匿名编号/遥测偏好，即使玩家手动复制旧配置。
+        privacy_migrated = bool(s.install_id) or s.send_usage is not False
+        s.install_id, s.send_usage = "", False
+        s.show_winrate = s.show_winrate if type(s.show_winrate) is bool else True
+        s.check_data_updates = s.check_data_updates if type(s.check_data_updates) is bool else False
+        for key, default, low, high in (("smoothing_games", 300, 0, 10000),
+                                        ("reliable_games", 1000, 100, 100000)):
+            value = getattr(s, key)
+            setattr(s, key, max(low, min(high, value)) if type(value) is int else default)
         from .i18n import normalize_lang
         s.game_lang = normalize_lang(s.game_lang)  # 以前的繁中选项 zh_TW、手改的怪值都当中文
         # 1.1.7 测试包里曾有勾选框：勾过的读设置时关掉，也不算玩家改的，只有云控能打开
@@ -249,15 +255,12 @@ class Settings:
             s.user_set = [k for k in s.user_set if k != "overlay_on_demand"]
         if not isinstance(s.overlay_hotkey, str):
             s.overlay_hotkey = DEFAULT_OVERLAY_HOTKEY
-        # 1.1.1：设置页去掉「显示胜率数字」（用这个软件就是要看胜率），以前关掉的也打开
-        s.show_winrate = True
         if s.data_band == "top":
             s.data_band = "high"  # 1.1.1 去掉「顶尖」，和「高分」合成「前 5%」
         if broken:
             # 实在读不懂：原文件留个备份，后面照常写新的；用户在里面关没关匿名统计看不出来，这次就当关了，
             # 能从原文里找到 "send_usage": true/false 就照它的
-            m = re.search(rb'"send_usage"\s*:\s*(true|false)', raw)
-            s.send_usage = bool(m) and m.group(1) == b"true"
+            s.send_usage = False
             s.seen_welcome = True  # 不是新装，别再弹欢迎框
             backup = path.with_name(path.name + ".broken")
             if backup.exists():  # 以前也坏过：不覆盖上一次的备份
@@ -267,8 +270,7 @@ class Settings:
                 log.warning("坏的设置文件改名为 %s，这次用默认设置", backup.name)
             except OSError as e:
                 log.warning("坏的设置文件没法改名：%s", e)
-        if hotkey_migrated or not s.install_id or not path.exists():
-            s.install_id = s.install_id or secrets.token_hex(8)
+        if hotkey_migrated or privacy_migrated or not path.exists():
             s.save(path)
         return s
 
