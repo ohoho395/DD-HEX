@@ -15,29 +15,26 @@ import webbrowser
 from html import escape
 from importlib import resources
 
-from PySide6.QtCore import Qt, QThread, QTimer, Signal
+from PySide6.QtCore import QSize, Qt, QThread, QTimer, Signal
 from PySide6.QtGui import QAction, QIcon, QKeySequence, QPixmap
 from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QFrame, QGridLayout,
                                QHBoxLayout, QKeySequenceEdit, QLabel, QLineEdit, QMainWindow, QMenu, QMessageBox, QProgressBar, QScrollArea,
                                QPushButton, QSizePolicy, QSpinBox, QSystemTrayIcon, QTabWidget, QVBoxLayout, QWidget)
 
-from .. import APP_NAME, DATA_HOMEPAGE, HOMEPAGE, __version__, cloud, cloudsettings, i18n, logupload, patch, rank, recommend, update
+from .. import APP_NAME, DATA_HOMEPAGE, __version__, cloud, cloudsettings, i18n, logupload, patch, rank, recommend, update
 from ..config import is_portable, program_dir
 from ..vision import window as win
 from ..data.public import BANDS, norm_band
 from . import autostart
 from .badgepos import POSITIONS as BADGE_POSITIONS, BadgePosPreview
-from . import buildview
+from . import desktop_style
 from .data_status import data_status_html
 from .herosearch import hero_completer
 
-RARITY_CN = {"silver": "白银", "gold": "黄金", "prismatic": "棱彩"}
 # 云控强制设置时提示用的名字
 SETTING_NAMES = {"idle_ocr_guard": "空闲时减少识别开销", "overlay_on_demand": "对局中按需显示浮窗按钮", "show_winrate": "显示胜率数字", "overlay": "显示游戏内浮窗", "overlay_corner": "浮窗位置",
                  "badge_position": "三选一标签", "speed": "识别频率",
                  "check_data_updates": "自动获取最新海克斯数据", "game_lang": "游戏语言", "data_band": "参考分数段"}
-VERDICT_CN = {"best": ("首选", "#2e9d5b"), "ok": ("可选", "#3b7dd8"), "reroll": ("可考虑刷新", "#d0533f"),
-              "unknown": ("未知", "#888"), "nodata": ("无数据", "#888")}
 PHASE_CN = {None: "未检测到英雄联盟", "client": "客户端（选英雄界面会自动识别英雄）", "ingame": "对局中"}
 VISION_CN = {"idle": "待机", "paused": "游戏不在前台，暂停", "scanning": "扫描中"}
 
@@ -77,7 +74,6 @@ def show_progress(bar: QProgressBar, label: str, done: int | None = None, total:
 def _card() -> QFrame:
     f = QFrame()
     f.setObjectName("card")
-    f.setStyleSheet("QFrame#card{border:1px solid #d7dbe3;border-radius:6px;background:#fbfcfe}")
     return f
 
 
@@ -221,10 +217,12 @@ class MainWindow(QMainWindow):
         self._hint_shown = False
         self.setWindowTitle(f"{APP_NAME} v{__version__}")
         self.setWindowIcon(app_icon())
-        self.resize(700, 820)
+        self.resize(840, 820)
+        self.setStyleSheet(desktop_style.STYLE)
         self.setMinimumSize(360, 260)
 
         root = QWidget()
+        root.setObjectName("desktop")
         lay = QVBoxLayout(root)
         lay.setContentsMargins(14, 12, 14, 12)
         lay.setSpacing(10)
@@ -233,8 +231,8 @@ class MainWindow(QMainWindow):
         head = QHBoxLayout()
         logo = QLabel()
         logo.setPixmap(app_icon().pixmap(40, 40))
-        title = QLabel(f"<b style='font-size:17px'>{APP_NAME}</b> "
-                       f"<span style='font-size:13px;color:#555'>{__version__}</span>")
+        title = QLabel(f"<b style='font-size:22px;color:#182f30'>DD HEX</b>"
+                       f"&nbsp;&nbsp;<span style='color:#526963'>海克斯助手 · v{__version__}</span>")
         head.addWidget(logo)
         head.addWidget(title, 1)
         self.btn_comm = QPushButton()  # 云控里标了 primary 的社区入口（比如 QQ 群），没有就不显示
@@ -280,23 +278,40 @@ class MainWindow(QMainWindow):
         self._notify_timer.start(3000)
 
         self.status = QLabel()
-        self.status.setWordWrap(False)  # 内容自带 <br> 换行；自动换行会让高度算不准被压扁
+        self.status.setWordWrap(True)  # 内容自带 <br> 换行；自动换行会让高度算不准被压扁
         self.status.setTextFormat(Qt.RichText)
-        sc = _card()
+        sc = QFrame()
         scl = QVBoxLayout(sc)
+        scl.setContentsMargins(3, 0, 3, 0)
         scl.addWidget(self.status)
         self.data_progress = _progress_bar()  # 下载统计数据时显示
         scl.addWidget(self.data_progress)
-        lay.addWidget(sc)
 
         # 英雄
-        hc = _card()
+        hc = QFrame()
+        hc.setObjectName("heroBand")
         hl = QVBoxLayout(hc)
+        hl.setContentsMargins(15, 10, 15, 10)
+        summary = QHBoxLayout()
+        summary.setSpacing(12)
+        self.hero_portrait = QLabel()
+        self.hero_portrait.setFixedSize(54, 54)
+        self.hero_portrait.setScaledContents(True)
+        self._portrait_key = None
+        summary.addWidget(self.hero_portrait)
         self.hero_label = QLabel()
+        self.hero_label.setObjectName("heroText")
         self.hero_label.setTextFormat(Qt.RichText)
-        hl.addWidget(self.hero_label)
+        summary.addWidget(self.hero_label, 1)
+        self.hero_metric = QLabel()
+        self.hero_metric.setObjectName("heroMetric")
+        self.hero_metric.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        summary.addWidget(self.hero_metric)
+        hl.addLayout(summary)
+        lay.addWidget(hc)
         self.cs_label = QLabel()  # 选人界面：待选栏按胜率排序的汇总
         self.cs_label.setTextFormat(Qt.RichText)
+        self.cs_label.setStyleSheet("color:#e9f1e9")
         self.cs_label.setWordWrap(True)
         self.cs_label.hide()
         hl.addWidget(self.cs_label)
@@ -310,7 +325,6 @@ class MainWindow(QMainWindow):
         btn_clear.clicked.connect(lambda: self.engine.set_hero(None))
         row.addWidget(self.search, 1)
         row.addWidget(btn_clear)
-        hl.addLayout(row)
         brow = QHBoxLayout()
         brow.addWidget(QLabel("分段"))
         self.band_box = QComboBox()
@@ -322,9 +336,8 @@ class MainWindow(QMainWindow):
         self.my_rank_label = QLabel()
         self.my_rank_label.setStyleSheet("color:#555")
         brow.addWidget(self.my_rank_label)
-        brow.addStretch(1)
-        hl.addLayout(brow)
-        lay.addWidget(hc)
+        row.addLayout(brow)
+        lay.addLayout(row)
 
         # 标签页
         self.tabs = QTabWidget()
@@ -334,7 +347,15 @@ class MainWindow(QMainWindow):
         self.tab_hero.setAlignment(Qt.AlignTop | Qt.AlignLeft)
         self.tab_hero.setTextInteractionFlags(Qt.TextSelectableByMouse)
         w1 = QWidget()
-        QVBoxLayout(w1).addWidget(self.tab_hero)
+        w1.setObjectName("page")
+        hero_body = QVBoxLayout(w1)
+        hero_body.setContentsMargins(18, 14, 18, 14)
+        self.hero_choices = QWidget()
+        self.choice_grid = QGridLayout(self.hero_choices)
+        self.choice_grid.setContentsMargins(0, 0, 0, 0)
+        self._choices_revision = None
+        hero_body.addWidget(self.hero_choices)
+        hero_body.addWidget(self.tab_hero, 1)
         # 出装、加点很长：放进滚动区，不然标签页按最高的一页定高度，选了英雄后设置页的「检查更新」被挤出窗口
         w1_scroll = QScrollArea()
         w1_scroll.setWidget(w1)
@@ -344,18 +365,21 @@ class MainWindow(QMainWindow):
         self.tabs.addTab(w1_scroll, "出装与加点")
 
         w2 = QWidget()
+        w2.setObjectName("page")
         l2 = QVBoxLayout(w2)
         self.offer_advice = QLabel("未在选海克斯")
         self.offer_advice.setWordWrap(True)
         l2.addWidget(self.offer_advice)
         grid = QGridLayout()
+        grid.setSpacing(8)
         self.offer_cards, self.offer_frames = [], []
         for i in range(4):  # 第 4 格只在四选一时显示
             lab = QLabel()
             lab.setTextFormat(Qt.RichText)
             lab.setWordWrap(True)
             lab.setAlignment(Qt.AlignTop)
-            lab.setMinimumWidth(170)
+            lab.setMinimumWidth(0)
+            lab.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
             fr = _card()
             QVBoxLayout(fr).addWidget(lab)
             grid.addWidget(fr, 0, i)
@@ -365,6 +389,7 @@ class MainWindow(QMainWindow):
         l2.addLayout(grid)
         btns = QHBoxLayout()
         b1 = QPushButton("重新识别")
+        b1.setObjectName("primary")
         b1.clicked.connect(self.engine.rescan)
         b2 = QPushButton("重新校准卡片位置")
         b2.clicked.connect(self._recalibrate)
@@ -378,7 +403,9 @@ class MainWindow(QMainWindow):
         self.tabs.addTab(self._settings_tab(), "设置")
         # 设置页底部已有数据状态，小窗口时让表单保留可操作的高度。
         self.tabs.currentChanged.connect(lambda page: sc.setVisible(page != 2))
+        self.tabs.currentChanged.connect(lambda page: hc.setVisible(page != 2))
         lay.addWidget(self.tabs, 1)
+        lay.addWidget(sc)
         # 小屏或高缩放时保留完整内容，允许滚动，不让底部操作落到屏幕外。
         root.setMinimumWidth(640)
         viewport = QScrollArea()
@@ -422,13 +449,31 @@ class MainWindow(QMainWindow):
         """设置页：一屏放下，不用滚动；改了马上生效，没有「保存」按钮。"""
         s = self.engine.settings
         w = QWidget()
+        w.setObjectName("settingsForm")
         outer = QVBoxLayout(w)
         outer.setSpacing(10)
-        g = QGridLayout()
-        g.setVerticalSpacing(8)
-        g.setHorizontalSpacing(10)
-        g.setColumnStretch(1, 1)
-        outer.addLayout(g)
+        outer.setContentsMargins(12, 12, 12, 6)
+        columns = QHBoxLayout()
+        columns.setSpacing(12)
+        outer.addLayout(columns)
+        def settings_group(title):
+            frame = _card()
+            frame.setObjectName("settingGroup")
+            layout = QVBoxLayout(frame)
+            layout.setContentsMargins(12, 10, 12, 10)
+            heading = QLabel(title)
+            heading.setObjectName("sectionName")
+            layout.addWidget(heading)
+            grid = QGridLayout()
+            grid.setVerticalSpacing(7)
+            grid.setColumnStretch(1, 1)
+            layout.addLayout(grid)
+            layout.addStretch(1)
+            columns.addWidget(frame, 1)
+            return grid
+
+        g = settings_group("识别与浮窗")
+        prefs = settings_group("推荐与存储")
 
         def label(text: str) -> QLabel:
             lab = QLabel(text)
@@ -497,20 +542,19 @@ class MainWindow(QMainWindow):
         self.set_reliable.setToolTip("首选候选门槛，默认 1000。保留同屏样本相差十倍的保护；全部不足门槛时仍比较，并明确仅供参考。")
 
         g.addWidget(label("游戏语言"), 0, 0)
-        g.addWidget(self.set_lang, 0, 1, 1, 2)
+        g.addWidget(self.set_lang, 1, 0, 1, 2)
         g.addWidget(label("浮窗位置"), 2, 0)
-        g.addWidget(self.set_corner, 2, 1, 1, 2)
-        g.addWidget(label("详情快捷键"), 3, 0)
-        g.addLayout(hotkey_row, 3, 1, 1, 2)
-        g.addWidget(self.hotkey_status, 4, 1, 1, 2)
-        # 示意图比下拉框高：左边下拉框下面接着放三个勾选项，示意图在右边占这四行
-        g.addWidget(label("三选一标签"), 5, 0)
-        g.addWidget(self.set_badge, 5, 1)
-        g.addWidget(self.set_auto, 6, 1)
-        g.addWidget(self.set_data, 7, 1)
-        g.addWidget(self.set_winrate, 8, 1)
-        g.addWidget(self.badge_preview, 5, 2, 4, 1, Qt.AlignTop | Qt.AlignRight)
-
+        g.addWidget(self.set_corner, 2, 1)
+        g.addWidget(label("详情快捷键"), 3, 0, 1, 2)
+        g.addLayout(hotkey_row, 4, 0, 1, 2)
+        g.addWidget(self.hotkey_status, 5, 0, 1, 2)
+        g.addWidget(label("三选一标签"), 6, 0, 1, 2)
+        g.addWidget(self.set_badge, 7, 0, 1, 2)
+        g.addWidget(self.badge_preview, 8, 0, 1, 2, Qt.AlignHCenter)
+        prefs.addWidget(self.set_winrate, 0, 0, 1, 2)
+        prefs.addWidget(self.set_auto, 3, 0, 1, 2)
+        self.set_data.setText("从 GitHub 更新统计")
+        prefs.addWidget(self.set_data, 4, 0, 1, 2)
         # 改了就生效、马上写进设置文件
         for combo in (self.set_lang, self.set_corner, self.set_badge):
             combo.currentIndexChanged.connect(self._settings_edited)
@@ -532,14 +576,14 @@ class MainWindow(QMainWindow):
         self.btn_rank.hide()
         self.btn_rank.setMinimumWidth(90)
         self.btn_rank.clicked.connect(self._query_rank)
-        g.addWidget(label("平滑强度"), 9, 0)
-        g.addWidget(self.set_smoothing, 9, 1, 1, 2)
-        g.addWidget(label("首选样本门槛"), 10, 0)
-        g.addWidget(self.set_reliable, 10, 1, 1, 2)
+        prefs.addWidget(label("平滑强度"), 1, 0)
+        prefs.addWidget(self.set_smoothing, 1, 1)
+        prefs.addWidget(label("首选样本门槛"), 2, 0)
+        prefs.addWidget(self.set_reliable, 2, 1)
         self.clear_shots = QPushButton("清理截图")
         self.clear_shots.clicked.connect(self._clear_saved_screenshots)
-        g.addWidget(label("本地存储"), 11, 0)
-        g.addWidget(self.clear_shots, 11, 1, Qt.AlignLeft)
+        prefs.addWidget(label("本地截图"), 5, 0)
+        prefs.addWidget(self.clear_shots, 5, 1, Qt.AlignLeft)
         self.rank_result = QLabel(w)
         self.rank_result.hide()
         self.rank_result.setWordWrap(True)
@@ -564,6 +608,7 @@ class MainWindow(QMainWindow):
         self.about_data.setWordWrap(True)
         cv.addWidget(self.about_data)
         self.btn_check = QPushButton("检查更新")
+        self.btn_check.setObjectName("primary")
         self.btn_check.setMinimumWidth(120)
         self.btn_check.setMinimumHeight(34)
         self.btn_check.clicked.connect(lambda: self.check_update(manual=True))
@@ -1126,6 +1171,34 @@ class MainWindow(QMainWindow):
         comp.activated.connect(lambda text: (self.engine.set_hero(self._names.get(text, text)), self.search.clear()))
         self.search.setCompleter(comp)
 
+    def _show_hero_choices(self, data, show):
+        self.hero_choices.setVisible(show)
+        if not show:
+            return
+        revision = data.get("dataset_revision"), data.get("band_effective")
+        if self._choices_revision == revision:
+            return
+        store = self.engine.store
+        rows = (store.ranks or {}).get("heroes") or {}
+        if not rows:
+            return
+        self._choices_revision = revision
+        while self.choice_grid.count():
+            self.choice_grid.takeAt(0).widget().deleteLater()
+        heading = QLabel("常见英雄")
+        heading.setObjectName("sectionName")
+        heading.setToolTip("按当前统计样本中的场次排序")
+        self.choice_grid.addWidget(heading, 0, 0, 1, 3)
+        choices = sorted(rows, key=lambda key: -(rows[key].get("games") or 0))
+        for i, key in enumerate([k for k in choices if k in store.heroes][:6]):
+            hero = store.heroes[key]
+            btn = QPushButton(hero["name"])
+            btn.setObjectName("heroChoice")
+            btn.setIcon(QIcon(desktop_style.portrait(hero.get("alias") or "")))
+            btn.setIconSize(QSize(36, 36))
+            btn.clicked.connect(lambda checked=False, hid=key: self.engine.set_hero(hid))
+            self.choice_grid.addWidget(btn, 1 + i // 3, i % 3)
+
     def _search_pick(self):
         t = self.search.text().strip()
         if t:
@@ -1159,10 +1232,10 @@ class MainWindow(QMainWindow):
         dd = snap.get("data", {})
         v = snap.get("vision", {})
         self.status.setText(
-            f"<b>状态：</b>{PHASE_CN.get(snap.get('phase'), snap.get('phase'))}<br>"
-            f"<b>海克斯识别：</b>{VISION_CN.get(v.get('status'), v.get('status'))}"
-            f"{' · <span style=\"color:#d0533f\">游戏可能是全屏模式，无法识别。请在游戏内设置-窗口模式中选择无边框/窗口。</span>' if v.get('blank') else ''}<br>"
-            f"<b>数据：</b>{BANDS.get(dd.get('band_effective'), '全体')} · {data_status_html(dd)}")
+            f"{PHASE_CN.get(snap.get('phase'), snap.get('phase'))}　·　"
+            f"识别{VISION_CN.get(v.get('status'), v.get('status'))}"
+            f"{' · <span style=\"color:#d0533f\">游戏可能是全屏模式，无法识别。请在游戏内设置-窗口模式中选择无边框/窗口。</span>' if v.get('blank') else ''}　│　"
+            f"{BANDS.get(dd.get('band_effective'), '全体')} · {data_status_html(dd)}")
         if hasattr(self, "about_data"):
             self.about_data.setText("统计数据：" + data_status_html(dd))
         dp = dd.get("data_progress")
@@ -1177,20 +1250,27 @@ class MainWindow(QMainWindow):
         if h:
             r = (d or {}).get("rank") or {}
             b = self.engine.hero_brief(hid)
-            rating = []
-            if b.get("grade"):
-                rating.append(f"评级 {b['grade']}")
-            if b.get("rank"):
-                rating.append(f"胜率排名 {b['rank']}/{b.get('total') or '?'}")
-            if show_win and r.get("win") is not None:
-                rating.append(f"胜率 {_pct(r['win'])}")
-            if r.get("pick") is not None:
-                rating.append(f"出场率 {_pct(r['pick'])}")
-            self.hero_label.setText(
-                f"<span style='font-size:18px'><b>{h['name']}</b></span> {h['nick']}<br>"
-                f"{' · '.join(rating)}")
+            key = h.get("alias") or ""
+            if key != self._portrait_key:
+                self._portrait_key = key
+                portrait = desktop_style.portrait(key)
+                self.hero_portrait.setPixmap(portrait if not portrait.isNull() else app_icon().pixmap(54, 54))
+            name = escape(str(h.get("name") or ""))
+            nick = escape(str(h.get("nick") or ""))
+            grade = f"　·　评级 {escape(str(b['grade']))}" if b.get("grade") else ""
+            pick = f"　·　出场率 {_pct(r['pick'])}" if r.get("pick") is not None else ""
+            self.hero_label.setText(f"<b style='font-size:23px'>{name}</b>"
+                                    f"<br><span style='color:#bfdbd0'>{nick}{grade}{pick}</span>")
+            rate = (f"<b style='font-size:22px'>{_pct(r['win'])}</b> 胜率"
+                    if show_win and r.get("win") is not None else "")
+            ranking = f"胜率排名 {b['rank']} / {b.get('total') or '?'}" if b.get("rank") else ""
+            self.hero_metric.setText(rate + ("<br>" if rate and ranking else "") + ranking)
         else:
-            self.hero_label.setText("<b>未识别到英雄，请手动选择</b>")
+            self._portrait_key = None
+            self.hero_portrait.setPixmap(app_icon().pixmap(54, 54))
+            self.hero_label.setText("<b style='font-size:20px'>选择英雄</b><br>"
+                                    "<span style='color:#bfdbd0'>未识别到英雄，可在下方搜索</span>")
+            self.hero_metric.clear()
         cs = snap.get("champ_select")
         if cs and (cs.get("bench") or cs.get("cards")):
             from .overlay import champ_select_summary
@@ -1203,73 +1283,54 @@ class MainWindow(QMainWindow):
         key = (hid, d.get("date"), d.get("data_revision"), d.get("official_revision"),
                d.get("official_origin"), self.engine.icons.version, dd.get("band_effective"), show_win,
                self.engine.settings.smoothing_games) if d else None
+        self._show_hero_choices(dd, not hid)
         if d and self._panel_hero != key:
             self._panel_hero = key
             self.tab_hero.setText(self._hero_html(d, show_win))
         elif not d:
             self._panel_hero = None
-            self.tab_hero.setText("<span style='color:#777'>还没有选英雄</span>")
+            self.tab_hero.setText("<span style='color:#777'>还没有选英雄。点击头像或搜索名字查看出装与加点。</span>")
         self._render_offer(snap.get("evaluation"), show_win,
                            (snap.get("offer") or {}).get("pending_columns"))
 
     def _hero_html(self, d, show_win) -> str:
-        out = buildview.lines(d, self.engine.icons, show_win, size=28)
-        sk = buildview.skills_line(d, show_win)
-        if sk:
-            out.append(sk)
-        top = [a for a in d.get("augments", []) if a.get("delta") is not None and a.get("sample") != "low"]
-        top.sort(key=lambda a: -a["delta"])
-        if top:
-            out.append("<b>推荐海克斯</b>")
-            for a in top[:8]:
-                out.append(f"　{a['name']} <span style='color:#777'>{RARITY_CN.get(a.get('rarity'), '')}"
-                           f" {a.get('tier') or ''}</span> <b style='color:#2e9d5b'>{a['delta']:+.1f}</b>")
-        return "<br>".join(out)
+        from .desktop_content import hero_html
+        return hero_html(d, self.engine.icons, show_win)
 
     def _render_offer(self, ev, show_win, pending=None):
-        if not ev:
-            self.offer_advice.setText("<span style='color:#777'>未在选海克斯</span>")
-            for lab in self.offer_cards:
-                lab.setText("")
-            return
+        from .desktop_content import offer_html
+        slots = (ev or {}).get("slots") or []
         waiting = any(pending or ())
-        pk = recommend.pentakill_text(ev.get("pentakill"), show_win=show_win) if not waiting else ""
-        advice = "卡片更新中，等待识别确认" if waiting else ev['advice']
-        self.offer_advice.setText(f"<b style='font-size:15px'>{advice}</b>"
-                                  + (f"<br><span style='color:#c9a0ff'>{escape(pk)}</span>" if pk else ""))
-        for i, fr in enumerate(getattr(self, "offer_frames", ())):
-            fr.setVisible(i < max(3, len(ev["slots"])))
-        for lab, r in zip(self.offer_cards, ev["slots"]):
-            if pending and r["index"] < len(pending) and pending[r["index"]]:
-                lab.setText("<span style='color:#777'>识别中…</span>")
+        frames = getattr(self, "offer_frames", ())
+        for i, lab in enumerate(self.offer_cards):
+            if i < len(frames):
+                frame = frames[i]
+                frame.setVisible(i < len(slots))
+                best = (i < len(slots) and slots[i]["verdict"] == "best"
+                        and not slots[i].get("sample_warning") and not waiting)
+                marker = "yes" if best else "no"
+                if frame.property("recommended") != marker:
+                    frame.setProperty("recommended", marker)
+                    frame.style().unpolish(frame)
+                    frame.style().polish(frame)
+            if i >= len(slots):
+                lab.clear()
+                lab.setToolTip("")
                 continue
-            v, col = VERDICT_CN.get(r["verdict"], VERDICT_CN["unknown"])
-            if r["verdict"] == "best" and r.get("sample_warning"):
-                v = "相对较好，仅供参考"
-            lines = [f"<b style='color:{col}'>{v}</b>", f"<b>{r.get('name') or '未识别'}</b>"]
-            meta = [RARITY_CN.get(r.get("rarity"), "")]
-            if r.get("tier"):
-                meta.append(f"{r['tier']}级")
-            lines.append("<span style='color:#777'>" + " ".join(m for m in meta if m) + "</span>")
-            if r["verdict"] == "nodata":
-                note = recommend.NEW_NOTE if r.get("basis") == "new" else recommend.NODATA_NOTE
-                lines.append(f"<span style='color:#777'>{note}</span>")
-            if r.get("basis") == "pbe":
-                pbe = (f"测试服 {r['pbe_games']} 局" + (f" · 胜率 {_pct(r['pbe_win'])}" if show_win else "") + "，"
-                       if r.get("pbe_games") else "")
-                lines.append(f"<span style='color:#777'>{pbe}{recommend.PBE_NOTE}</span>")
-            if r.get("score") is not None:
-                s = f"{r['score']:+.1f}"
-                if show_win and recommend.win_text(r):
-                    s += " · " + recommend.win_text(r)
-                if r.get("thin") or r.get("sample_warning"):
-                    warn = "⚠ 样本太少" if r.get("thin") == "too_few" else "样本偏少"
-                    s += f" · <span style='color:#ff7a6b'>{warn}</span>"
-                lines.append(s)
-            if r.get("games") is not None:
-                lines.append(f"<span style='color:#777'>样本 {r['games']} 局</span>")
-            lab.setText("<br>".join(lines))
-            lab.setToolTip("\n".join(r.get("reasons") or []) if show_win else "")
+            row = slots[i]
+            if pending and row["index"] < len(pending) and pending[row["index"]]:
+                lab.setText("<span style='color:#777'>识别中…</span>")
+                lab.setToolTip("")
+                continue
+            lab.setText(offer_html(row, show_win))
+            lab.setToolTip("\n".join(row.get("reasons") or []) if show_win else "")
+        if not ev:
+            self.offer_advice.setText("<span style='color:#526768'>未在选海克斯</span>")
+            return
+        advice = "卡片更新中，等待识别确认" if waiting else ev["advice"]
+        pk = recommend.pentakill_text(ev.get("pentakill"), show_win=show_win) if not waiting else ""
+        self.offer_advice.setText(f"<b style='font-size:20px;color:#172d30'>{escape(advice)}</b>"
+                                  + (f"<br><span style='color:#526768'>{escape(pk)}</span>" if pk else ""))
 
     # ---------- 窗口行为 ----------
 

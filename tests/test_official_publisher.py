@@ -46,7 +46,7 @@ def test_explicit_core_semantics_require_first_fork_release_and_cannot_downgrade
     data["heroes"]["heroes"]["17"]["builds"]["core"] = [
         {"items": ["1001", "1001", "1001"], "ordered": ordered}]
     directory, meta = candidate(tmp_path, data)
-    assert meta["min_client"] == __version__
+    assert meta["min_client"] == "0.1.0"
     assert publisher.read_candidate(directory)[1] == data
     publication = publisher.initialize_publication(tmp_path / "public")
     approve(directory, meta, publication)

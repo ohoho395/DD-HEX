@@ -1,6 +1,6 @@
 # Windows 10/11 安装、运行与 EXE 打包
 
-适用 DD HEX 0.1.2。目标为 Windows 10/11 x64 + Python 3.13 x64。当前提交的测试环境与未验证项见 [VERIFICATION.md](VERIFICATION.md)。本次提供 Windows x64 免安装便携包。完整解压 ZIP 到可写目录，双击 DD HEX.exe。内置 Python 3.13.13，无需安装 Python。遇到启动问题可双击 Self-Test.cmd 生成 self-test.json，或用 Start.cmd 查看报错。本包在 Mac 组装并做静态检查，Windows 实机尚待试用。下面的 Python 安装步骤仅供源码开发。
+适用 DD HEX 0.1.3。目标为 Windows 10/11 x64 + Python 3.13 x64。当前提交的测试环境与未验证项见 [VERIFICATION.md](VERIFICATION.md)。本次提供 Windows x64 免安装便携包。完整解压 ZIP 到可写目录，双击 DD HEX.exe。内置 Python 3.13.13，无需安装 Python。遇到启动问题可双击 Self-Test.cmd 生成 self-test.json，或用 Start.cmd 查看报错。本包在 Mac 组装并做静态检查，Windows 实机尚待试用。下面的 Python 安装步骤仅供源码开发。
 
 ## 1. 安装依赖
 

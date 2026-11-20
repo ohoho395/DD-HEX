@@ -124,3 +124,15 @@ def test_clear_button_only_removes_own_screenshots_after_confirmation(window, mo
     assert all(p.read_bytes() == b"data" for p in keep)
     w.clear_shots.click()
     assert messages[-1] == "没有需要清理的截图。"
+
+
+def test_empty_page_hero_shortcut_loads_the_selected_hero(window):
+    from PySide6.QtWidgets import QPushButton
+    w, engine, _ = window
+    engine.set_hero(None)
+    w.refresh()
+    choices = w.hero_choices.findChildren(QPushButton)
+    assert choices
+    choices[0].click()
+    w.refresh()
+    assert choices[0].text() in w.hero_label.text() and w.hero_choices.isHidden()
