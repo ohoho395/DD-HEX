@@ -1,6 +1,6 @@
 # Windows 10/11 安装、运行与 EXE 打包
 
-适用 DD HEX 0.1.3。目标为 Windows 10/11 x64 + Python 3.13 x64。当前提交的测试环境与未验证项见 [VERIFICATION.md](VERIFICATION.md)。本次提供 Windows x64 免安装便携包。完整解压 ZIP 到可写目录，双击 DD HEX.exe。内置 Python 3.13.13，无需安装 Python。遇到启动问题可双击 Self-Test.cmd 生成 self-test.json，或用 Start.cmd 查看报错。本包在 Mac 组装并做静态检查，Windows 实机尚待试用。下面的 Python 安装步骤仅供源码开发。
+适用 DD HEX 0.1.4。目标为 Windows 10/11 x64 + Python 3.13 x64。当前提交的测试环境与未验证项见 [VERIFICATION.md](VERIFICATION.md)。本次提供 Windows x64 免安装便携包。完整解压 ZIP 到可写目录，双击 DD HEX.exe。内置 Python 3.13.13，无需安装 Python。遇到启动问题可双击 Self-Test.cmd 生成 self-test.json，或用 Start.cmd 查看报错。本包在 Mac 组装并做静态检查，Windows 实机尚待试用。下面的 Python 安装步骤仅供源码开发。
 
 ## 1. 安装依赖
 
@@ -115,3 +115,5 @@ pwsh -NoProfile -File packaging\build.ps1
 `.github/workflows/release.yml` 仅手动 Windows 构建并保存 artifact，不自动发布 Release、不推送标签、不触碰上游仓库。当前交付未创建远端 Fork、未上传源码、未发布安装包。
 
 在「设置 → 本地存储 → 清理截图」可删除助手保存的选卡和调试截图。确认后显示删除数量。清理后仍按原规则保存新截图。
+
+0.1.4 支持从早期便携版升级。退出旧版，从托盘确认关闭，将新包完整解压到新目录。需要保留设置或已下载的数据时，再把旧版的 `userdata` 文件夹复制到新目录。

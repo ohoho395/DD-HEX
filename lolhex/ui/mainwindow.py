@@ -28,7 +28,7 @@ from ..data.public import BANDS, norm_band
 from . import autostart
 from .badgepos import POSITIONS as BADGE_POSITIONS, BadgePosPreview
 from . import desktop_style
-from .data_status import data_status_html
+from .data_status import data_status_html, statistics_check_message, statistics_settings_text
 from .herosearch import hero_completer
 
 # 云控强制设置时提示用的名字
@@ -215,7 +215,7 @@ class MainWindow(QMainWindow):
         self._cand_ids: list = []
         self._panel_hero = None
         self._hint_shown = False
-        self.setWindowTitle(f"{APP_NAME} · 界面预览")
+        self.setWindowTitle(f"{APP_NAME} v{__version__}")
         self.setWindowIcon(app_icon())
         self.resize(940, 780)
         self.setStyleSheet(desktop_style.STYLE)
@@ -232,7 +232,7 @@ class MainWindow(QMainWindow):
         logo = QLabel()
         logo.setPixmap(app_icon().pixmap(40, 40))
         title = QLabel(f"<b style='font-size:24px;color:#F4F1E9'>DD HEX</b>"
-                       f"&nbsp;&nbsp;<span style='color:#B4B9C3'>海克斯助手 · 界面预览</span>")
+                       f"&nbsp;&nbsp;<span style='color:#B4B9C3'>海克斯助手 · v{__version__}</span>")
         head.addWidget(logo)
         head.addWidget(title, 1)
         self.btn_comm = QPushButton()  # 云控里标了 primary 的社区入口（比如 QQ 群），没有就不显示
@@ -1019,21 +1019,20 @@ class MainWindow(QMainWindow):
         self._worker.start()
 
     def _sync_data_now(self) -> str:
-        """「检查更新」按钮：马上查统计数据（不管自动更新开关）和官方资料，返回结果。"""
+        """仅在用户开启统计更新时检查，并返回实际处理状态。"""
         st = self.engine.store
-        if not self.engine.settings.check_data_updates:
-            return "统计更新已关闭，正在使用内置或已下载的快照。"
-        changed = st.sync_data(force=True, manual=True)
-        if changed:  # 结果在「检查更新」的对话框里说了，右下角不再提示一遍
+        opted_in = self.engine.settings.check_data_updates
+        changed = st.sync_data(force=True, manual=True) if opted_in else False
+        if changed:
             self._shown_note = (getattr(st, "data_note", None) or {}).get("id")
         ds = st.dataset
-        tail = f"（{ds.patch} 版本，截至 {str(ds.snapshot_at)[5:10]}）" if ds else ""
-        if changed:
-            msg = f"统计数据已更新{tail}。"
-        elif st.sync_error:
-            msg = "统计数据这次没连上，稍后会自动再试。"
-        else:
-            msg = f"统计数据已是最新{tail}。"
+        status = {"data_check_state": (getattr(st, "sync_state", "updated" if changed else "never_checked")
+                                        if opted_in else "disabled"),
+                  "dataset_patch": ds.patch if ds else None,
+                  "dataset_snapshot": ds.snapshot_at if ds else None}
+        msg = statistics_check_message(status)
+        if not opted_in:
+            return msg
         # 官方资料（英雄、海克斯、装备、召唤师技能）平时按云控间隔查（可能 30 天一次），按钮上也马上查一次。
         # 只在换上新一版时多说一句；没变化、连不上都不提，免得多一行看不懂的话
         if hasattr(st, "sync_official"):
@@ -1052,11 +1051,12 @@ class MainWindow(QMainWindow):
     def _check_failed(self, msg: str):
         logging.getLogger(__name__).warning("检查更新失败：%s", msg)
         box = QMessageBox(QMessageBox.Warning, "检查更新", "检查更新失败，请稍后再试。" + self._data_line(), parent=self)
-        b_site = box.addButton("官网下载", QMessageBox.ActionRole)
+        page = update.download_page()
+        b_site = box.addButton("独立版本发布页", QMessageBox.ActionRole) if page else None
         box.addButton("关闭", QMessageBox.RejectRole)
         box.exec()
-        if box.clickedButton() is b_site:
-            webbrowser.open(update.download_page())
+        if b_site is not None and box.clickedButton() is b_site:
+            webbrowser.open(page)
 
     def _update_found(self, info: dict, manual: bool = False):
         known = (self._update_info or {}).get("version")
@@ -1241,7 +1241,8 @@ class MainWindow(QMainWindow):
             f"{' · <span style=\"color:#ff997e\">游戏可能是全屏模式，无法识别。请在游戏内设置-窗口模式中选择无边框/窗口。</span>' if v.get('blank') else ''}　│　"
             f"{BANDS.get(dd.get('band_effective'), '全体')} · {data_status_html(dd)}")
         if hasattr(self, "about_data"):
-            self.about_data.setText("统计数据：" + data_status_html(dd))
+            self.about_data.setText(statistics_settings_text(
+                dd, enabled=self.engine.settings.check_data_updates, update_source=update.download_page()))
         dp = dd.get("data_progress")
         if dp:
             show_progress(self.data_progress, "统计数据更新中", dp.get("done"), dp.get("total"))
@@ -1286,7 +1287,7 @@ class MainWindow(QMainWindow):
 
         key = (hid, d.get("date"), d.get("data_revision"), d.get("official_revision"),
                d.get("official_origin"), self.engine.icons.version, dd.get("band_effective"), show_win,
-               self.engine.settings.smoothing_games) if d else None
+               self.engine.settings.smoothing_games, self.engine.settings.reliable_games) if d else None
         self._show_hero_choices(dd, not hid)
         if d and self._panel_hero != key:
             self._panel_hero = key
@@ -1299,7 +1300,7 @@ class MainWindow(QMainWindow):
 
     def _hero_html(self, d, show_win) -> str:
         from .desktop_content import hero_html
-        return hero_html(d, self.engine.icons, show_win)
+        return hero_html(d, self.engine.icons, show_win, self.engine.settings.reliable_games)
 
     def _render_offer(self, ev, show_win, pending=None):
         from .desktop_content import offer_html

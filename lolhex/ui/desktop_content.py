@@ -2,6 +2,7 @@
 from html import escape
 
 from .. import recommend
+from ..panel import split_augment_samples
 from ..data.tencent import RARITY_CN
 from . import buildview
 
@@ -38,7 +39,7 @@ def _rate(row, show):
     return _text(f"胜率 {win * 100:.1f}%", color=ACCENT)
 
 
-def hero_html(d, icons, show_win):
+def hero_html(d, icons, show_win, reliable_games=recommend.RELIABLE_GAMES):
     b = d.get("builds") or {}
     sections = []
     rows = []
@@ -86,17 +87,22 @@ def hero_html(d, icons, show_win):
         spell_section = (_heading("召唤师技能", scope) + "<table width='100%' cellspacing='0' cellpadding='5'>"
                          + "<tr>" + "".join(cells) + "</tr></table>")
 
-    top = sorted((a for a in d.get("augments", []) if a.get("delta") is not None and a.get("sample") != "low"),
-                 key=lambda a: -a["delta"])[:8]
+    qualified, low = split_augment_samples(d.get("augments", []), reliable_games)
     ranking = ""
-    if top:
-        rows = []
-        for aug in top:
+    for name, rows in (("推荐海克斯", qualified[:8]), ("小样本参考", low[:3])):
+        if not rows:
+            continue
+        rank_rows = []
+        for aug in rows:
             tier = " · ".join(s for s in (RARITY_CN.get(aug.get("rarity")), aug.get("tier")) if s)
-            rows.append(_row(_text(aug["name"], bold=True), _text(tier, size=12, color=MUTED),
-                             _text(f"{aug['delta']:+.1f}", color=ACCENT)))
-        ranking = _heading("推荐海克斯") + _text("相对英雄基准 · 平滑后百分点", size=12, color=MUTED) + (
-            "<table width='100%' cellspacing='0' cellpadding='5'>" + "".join(rows) + "</table>")
+            games = aug.get("evidence_games") or aug.get("games") or 0
+            scope = aug.get("evidence_scope") or "全段位"
+            evidence = _text(f"{scope} {games:,} 局", size=12, color=MUTED)
+            rank_rows.append(_row(_text(aug["name"], bold=True) + "<br>" + evidence,
+                                  _text(tier, size=12, color=MUTED), _text(f"{aug['delta']:+.1f}", color=ACCENT)))
+        note = "相对英雄基准 · 平滑后百分点" if name == "推荐海克斯" else f"不足首选门槛 {reliable_games:,} 局"
+        ranking += (_heading(name) + _text(note, size=12, color=MUTED)
+                    + "<table width='100%' cellspacing='0' cellpadding='5'>" + "".join(rank_rows) + "</table>")
     if ranking and sections:
         content = ("<table width='100%' cellspacing='0' cellpadding='5'><tr>"
                 "<td width='55%' valign='top'>" + "".join(sections) + "</td>"
@@ -129,7 +135,9 @@ def offer_html(row, show_win):
     if row.get("thin") or row.get("sample_warning"):
         lines.append(_text("样本太少" if row.get("thin") == "too_few" else "样本偏少", color="#F0C88A"))
     if verdict == "nodata":
-        note = recommend.NODATA_NOTE if row.get("basis") == "excluded" else recommend.NEW_NOTE
+        note = {"excluded": recommend.NODATA_NOTE, "new": recommend.NEW_NOTE,
+                "rare": "本英雄暂无可靠样本", "tier_only": "仅有官方评级，暂无胜率样本"}.get(
+                    row.get("basis"), "暂无可靠样本")
         lines.append(_text(note, color=MUTED))
     elif row.get("basis") == "pbe":
         games = row.get("pbe_games")

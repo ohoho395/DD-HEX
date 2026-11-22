@@ -182,6 +182,7 @@ def test_background_recompute_cannot_unmask_a_new_pending_observation(scene, mon
 
 def test_main_window_also_suppresses_old_name_score_and_advice(scene):
     from types import SimpleNamespace
+    from PySide6.QtGui import QTextDocumentFragment
     from lolhex.ui.mainwindow import MainWindow
 
     det, _, _, _, _, engine, _ = scene
@@ -193,7 +194,7 @@ def test_main_window_also_suppresses_old_name_score_and_advice(scene):
         engine._on_offer(det._stabilize(replace(det._stable, slots=[IDS[3], IDS[1], IDS[2]]),
                                        [True, False, False]))
         window.refresh()
-        assert window.offer_cards[0].text() == "<span style='color:#777'>识别中…</span>"
+        assert QTextDocumentFragment.fromHtml(window.offer_cards[0].text()).toPlainText() == "识别中…"
         assert [lab.text() for lab in window.offer_cards[1:]] == old_texts[1:]
         assert '等待识别确认' in window.offer_advice.text()
     finally:

@@ -326,7 +326,7 @@ class BadgeLayer(_Layer):
             if r.get("tier"):
                 meta.append(f"{r['tier']}级")
             if r.get("basis") == "tier_only":
-                meta.append("按官方层级")
+                meta.append("仅有官方评级")
             if r.get("basis") == "pbe" and r.get("pbe_games"):  # 新海克斯先用测试服数据：直接给局数和胜率，看得出高低
                 meta.append(f"测试服 {r['pbe_games']} 局" + (f" 胜率{_pct(r['pbe_win'])}" if show_win else ""))
             if r.get("thin") == "few" or r.get("sample_warning") and r.get("thin") != "too_few":
@@ -1150,10 +1150,13 @@ class ControlPanel(QWidget):
             sk = buildview.skills_line(d, show_win)
             if sk:
                 parts.append(sk)
-            top = [a for a in d.get("augments", []) if a.get("delta") is not None and a.get("sample") != "low"]
-            top.sort(key=lambda a: -a["delta"])
-            if top:
-                parts.append("推荐海克斯：" + "、".join(f"{a['name']}({a['delta']:+.1f})" for a in top[:5]))
+            from ..panel import split_augment_samples
+            qualified, low = split_augment_samples(d.get("augments", []), self.engine.settings.reliable_games)
+            for label, rows in (("推荐海克斯", qualified[:5]), ("小样本参考", low[:2])):
+                if rows:
+                    parts.append(label + "：" + "、".join(
+                        f"{escape(a['name'])}({a['delta']:+.1f}，{escape(a['evidence_scope'])}{a['evidence_games']:,}局)"
+                        for a in rows))
         if snap.get("vision", {}).get("blank"):
             parts.append("<span style='color:#ff7a6b'>游戏可能是全屏模式，无法识别。请在游戏内设置-窗口模式中选择无边框/窗口。</span>")
         parts.append(f"<span style='color:#8b93a7'>{data_status_html(snap.get('data', {}))}</span>")

@@ -136,3 +136,12 @@ def test_empty_page_hero_shortcut_loads_the_selected_hero(window):
     choices[0].click()
     w.refresh()
     assert choices[0].text() in w.hero_label.text() and w.hero_choices.isHidden()
+
+
+def test_reliable_threshold_repaints_hero_page_without_switching_hero(window):
+    w, engine, _ = window
+    before = w.tab_hero.text()
+    w.set_reliable.setValue(100000)
+    after = w.tab_hero.text()
+    assert engine.state["hero_id"] == "17" and after != before
+    assert "小样本参考" in after and "100,000 局" in after

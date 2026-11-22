@@ -211,10 +211,14 @@ def check(current: str, timeout: float = 8, strict: bool = False, api: str | Non
             return check_mirror(current, timeout, mirrors, probe_hosts) if mirrors or probe_hosts else None
         r = requests.get(api, headers=cloud.headers(api, Accept="application/vnd.github+json"), timeout=timeout)
         if r.status_code == 404:
-            return None  # 还没有发布过
+            if strict:
+                raise ValueError("独立更新源不存在或尚未发布正式版本，未完成版本核对。")
+            return None
         r.raise_for_status()
         rel = r.json()
         version = str(rel.get("tag_name") or "").lstrip("vV")
+        if not _PRE.fullmatch(version):
+            raise ValueError("更新源未返回有效的版本号，未完成版本核对。")
         if rel.get("draft") or rel.get("prerelease") or not is_newer(version, current):
             return None
         assets = rel.get("assets") or []

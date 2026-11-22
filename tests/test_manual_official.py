@@ -45,13 +45,13 @@ def test_manual_check_message(changed, extra):
     from lolhex.ui.mainwindow import MainWindow
 
     official = FakeOfficial(changed)
-    store = SimpleNamespace(sync_data=lambda **k: False, data_note=None, sync_error=None,
+    store = SimpleNamespace(sync_data=lambda **k: False, data_note=None, sync_error=None, sync_state="unchanged",
                             dataset=SimpleNamespace(patch="16.21", snapshot_at="2026-10-26T11:41:58+08:00"),
                             official=official)
     store.sync_official = lambda force=False: DataStore.sync_official(
         SimpleNamespace(official=official, _lock=__import__("threading").RLock(), _heroes={}, last_error=None), force)
     fake = SimpleNamespace(engine=SimpleNamespace(store=store, settings=SimpleNamespace(check_data_updates=True)))
     msg = MainWindow._sync_data_now(fake)
-    assert msg.startswith("统计数据已是最新（16.21 版本，截至 10-26）。")
+    assert msg.startswith("已核对远端，当前统计无需更新（16.21 版本，样本截至 10-26）。")
     assert official.calls == [True]
     assert (extra in msg) if extra else ("官方资料" not in msg)
