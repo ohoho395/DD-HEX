@@ -18,14 +18,15 @@ from html import escape
 
 from PySide6.QtCore import QEvent, QPoint, QRect, QRectF, QSize, Qt, QTimer
 from PySide6.QtGui import QColor, QCursor, QFont, QFontMetrics, QGuiApplication, QPainter, QPen, QPixmap, QRegion
-from PySide6.QtWidgets import (QApplication, QHBoxLayout, QLabel, QLineEdit, QPushButton,
+from PySide6.QtWidgets import (QApplication, QButtonGroup, QFrame, QHBoxLayout, QLabel, QLineEdit, QPushButton, QScrollArea,
                                QVBoxLayout, QWidget)
 
 from .. import cloud, crashlog, recommend
 from ..recommend import NODATA_NOTE
 from ..vision import window as win
 from .. import patch
-from . import buildview, single_instance
+from . import desktop_style, single_instance
+from .overlay_content import render_details
 from .autoshot import AutoShot
 
 from .data_status import data_status_html
@@ -663,14 +664,27 @@ class ControlPanel(QWidget):
     Qt 先按左边不动撑大、再摆回右对齐，中间约 30 毫秒图标跳到别处（231 逐帧采样实测），玩家看到图标闪一下。
     现在图标窗口大小、位置都不因展开收起而变，详情窗口贴在图标下面单独显示、隐藏。"""
 
-    STYLE_BODY = ("QWidget#body{background:#101318ee;border:1px solid #2c3240;border-radius:8px}"
-                  "QLabel{color:#e6e8ee;font:12px 'Microsoft YaHei UI'}"
-                  "QLineEdit{background:#0c0e12;color:#e6e8ee;border:1px solid #2c3240;border-radius:4px;padding:3px 6px}"
-                  "QPushButton{background:#1b2130;color:#e6e8ee;border:1px solid #2c3240;border-radius:4px;padding:2px 8px}"
-                  "QPushButton:hover{border-color:#62a8ff}")
-
-    BTN_STYLE = ("QPushButton{background:#171a21ee;color:#e7c35a;border:1px solid #3a4150;border-radius:%dpx}"
-                 "QPushButton:hover{border-color:#62a8ff}")
+    STYLE_BODY = """
+        QWidget#body {background:rgba(24,34,37,247);border:1px solid #54655e;border-radius:11px;}
+        QLabel {color:#eff4ef;background:transparent;font:13px 'Microsoft YaHei UI';}
+        QFrame#champHeader {background:qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 #dceae0,stop:.65 #e8ebe4,stop:1 #efe9dd);
+            border:1px solid #edf2e9;border-radius:7px;}
+        QLabel#headerIdentity,QLabel#headerMetric {color:#20372c;}
+        QPushButton {background:transparent;color:#ccd7d0;border:1px solid transparent;border-radius:4px;padding:3px 6px;}
+        QPushButton:hover {background:#32413e;color:#fff;}
+        QPushButton#pageTab {font-weight:600;color:#aebdb7;padding:4px 9px;border-radius:0;border-bottom:2px solid transparent;}
+        QPushButton#pageTab:checked {color:#e3f4e8;border-bottom:2px solid #a5dbbf;}
+        QLabel#source {font-size:11px;color:#aab9b2;}
+        QFrame#footer {border:none;border-top:1px solid #43504c;}
+        QLineEdit {background:#101a1c;color:#eef2ef;border:1px solid #65766e;border-radius:4px;padding:4px 6px;}
+        QScrollArea {border:none;background:transparent;}
+        QScrollBar:vertical {background:transparent;width:7px;}
+        QScrollBar::handle:vertical {background:#687872;border-radius:3px;min-height:18px;}
+        QScrollBar::add-line:vertical,QScrollBar::sub-line:vertical {height:0;}
+        QScrollBar::add-page:vertical,QScrollBar::sub-page:vertical {background:transparent;}
+    """
+    BTN_STYLE = ("QPushButton{background:transparent;border:1px solid transparent;border-radius:%dpx}"
+                 "QPushButton:hover{background:rgba(42,60,54,235);border-color:#819b8d}")
 
     def __init__(self, engine, corner: str = "top-right"):
         super().__init__()
@@ -706,7 +720,7 @@ class ControlPanel(QWidget):
         self.btn.setToolTip("DD HEX：点击展开/收起")
         self.btn.setFixedSize(40, 40)
         self.btn.setCursor(Qt.PointingHandCursor)
-        self.btn.setStyleSheet(self.BTN_STYLE % 20)
+        self.btn.setStyleSheet(self.BTN_STYLE % 11)
         self.btn.clicked.connect(self._click_toggle)
 
         # 详情：单独的窗口（属于图标窗口，跟着它一起关），贴在图标下面
@@ -719,18 +733,34 @@ class ControlPanel(QWidget):
         self.body.setObjectName("body")
         self.body.setAttribute(Qt.WA_StyledBackground)
         self.body.setStyleSheet(self.STYLE_BODY)
-        self.body.setFixedWidth(360)
+        self.body.setFixedWidth(372)
         bl = QVBoxLayout(self.body)
-        bl.setContentsMargins(10, 10, 10, 10)
+        bl.setContentsMargins(10, 10, 10, 6)
         bl.setSpacing(6)
         # 英雄：识别结果 / 候选 / 搜索手动选
+        header = QFrame()
+        header.setObjectName("champHeader")
+        head = QHBoxLayout(header)
+        head.setContentsMargins(10, 8, 10, 8)
+        head.setSpacing(9)
+        self.portrait = QLabel()
+        self.portrait.setFixedSize(38, 38)
+        self.portrait.setScaledContents(True)
+        self._portrait_key = None
+        self.rate_label = QLabel()
+        self.rate_label.setObjectName("headerMetric")
+        self.rate_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
         self.hero_label = QLabel()
+        self.hero_label.setObjectName("headerIdentity")
+        head.addWidget(self.portrait)
+        head.addWidget(self.hero_label, 1)
+        head.addWidget(self.rate_label)
         self.hero_label.setTextFormat(Qt.RichText)
         self.hero_label.setWordWrap(True)
         self.cands = QHBoxLayout()
         self.cands.setSpacing(4)
         self.search = QLineEdit()
-        self.search.setPlaceholderText("搜英雄手动选择：提莫 / 提百万 / tm")
+        self.search.setPlaceholderText("输入英雄名字、拼音或外号")
         self._completer_ready = False
         self.search.returnPressed.connect(self._search_pick)
         self.search.installEventFilter(self)
@@ -749,14 +779,82 @@ class ControlPanel(QWidget):
         self.info.setWordWrap(True)
         self.info.setOpenExternalLinks(False)
         self.info.linkActivated.connect(self._link)
-        bl.addWidget(self.hero_label)
+        bl.addWidget(header)
         bl.addLayout(self.cands)
-        bl.addLayout(search_row)
+        self.search_row = QWidget()
+        search_row.setContentsMargins(0, 0, 0, 0)
+        self.search_row.setLayout(search_row)
+        bl.addWidget(self.search_row)
         bl.addWidget(self.search_feedback)
-        bl.addWidget(self.info)
+        self._editing_hero = False
+        self._view = "loadout"
+        self._latest_snap = None
+        self._cached_panel = None
+        self._detail_key = None
+        self._bounds = None
+        tabs = QHBoxLayout()
+        tabs.setSpacing(4)
+        self.pages = QButtonGroup(self)
+        for index, name in enumerate(("出装与加点", "推荐海克斯")):
+            button = QPushButton(name)
+            button.setObjectName("pageTab")
+            button.setCheckable(True)
+            button.setFocusPolicy(Qt.NoFocus)
+            self.pages.addButton(button, index)
+            tabs.addWidget(button)
+        self.pages.button(0).setChecked(True)
+        self.pages.idClicked.connect(self._switch_page)
+        tabs.addStretch(1)
+        self.edit_hero = QPushButton("换英雄")
+        self.edit_hero.setFocusPolicy(Qt.NoFocus)
+        self.edit_hero.clicked.connect(self._change_hero)
+        tabs.addWidget(self.edit_hero)
+        bl.addLayout(tabs)
+        self.info.setAlignment(Qt.AlignLeft | Qt.AlignTop)
+        self.info_scroll = QScrollArea()
+        self.info_scroll.setFrameShape(QFrame.NoFrame)
+        self.info_scroll.setFocusPolicy(Qt.NoFocus)
+        self.info_scroll.setWidgetResizable(True)
+        self.info_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.info_scroll.setWidget(self.info)
+        self.info_scroll.viewport().setAutoFillBackground(False)
+        self.info.setAutoFillBackground(False)
+        bl.addWidget(self.info_scroll)
+        self._size_key = None
+        footer = QFrame()
+        footer.setObjectName("footer")
+        foot = QHBoxLayout(footer)
+        foot.setContentsMargins(2, 4, 0, 0)
+        foot.setSpacing(3)
+        self.source = QLabel()
+        self.source.setObjectName("source")
+        self.source.setWordWrap(True)
+        foot.addWidget(self.source, 1)
+        for title, command in (("重新识别", "rescan"), ("退出", "quit")):
+            action = QPushButton(title)
+            action.setFocusPolicy(Qt.NoFocus)
+            action.clicked.connect(lambda checked=False, key=command: self._link(key))
+            foot.addWidget(action)
+        bl.addWidget(footer)
         bw_lay.addWidget(self.body)
         lay.addWidget(self.btn)
         self._cand_ids = []
+
+    def _switch_page(self, index):
+        self._view = ("loadout", "augments")[index]
+        if self._latest_snap is not None:
+            self.update_from(self._latest_snap)
+        self.info_scroll.verticalScrollBar().setValue(0)
+        self.give_back_focus()
+
+    def _change_hero(self):
+        self._editing_hero = not self._editing_hero
+        if not self._editing_hero:
+            self.search_feedback.hide()
+            self.give_back_focus()
+        if self._latest_snap is not None:
+            self.update_from(self._latest_snap)
+        self._place_body()
 
     def showEvent(self, e):
         win.add_companion(int(self.winId()))  # 点浮窗不算离开客户端，标注照常显示
@@ -837,9 +935,26 @@ class ControlPanel(QWidget):
                 self._no_activate()
                 self._publish()
             return
-        bw.adjustSize()
         k = self.devicePixelRatioF() or 1.0
         icon = win.window_rect(int(self.winId())) if win.IS_WINDOWS else None
+        if self._bounds is not None:
+            icon_bottom = (icon.top + icon.height) / k if icon else self.y() + self.height()
+            room = int(self._bounds.bottom / k - icon_bottom - 10)
+        else:
+            room = 500
+        width = self.body.width() - 30
+        # Sum non-scroll rows using the layout's fixed scroll minimum rather
+        # than the scroll area's preferred viewport size.
+        self.body.layout().activate()
+        chrome = self.body.layout().minimumSize().height() - self.info_scroll.minimumHeight()
+        size_key = self.info.text(), width, room, chrome
+        if self._size_key != size_key:
+            self._size_key = size_key
+            height = max(24, self.info.heightForWidth(width) + 4)
+            self.info_scroll.setFixedHeight(max(24, min(height, room - chrome)))
+            self.body.layout().activate()
+            bw.layout().activate()
+        bw.adjustSize()
         if icon:
             hb = int(bw.winId())
             w, h = round(bw.width() * k), round(bw.height() * k)
@@ -862,6 +977,9 @@ class ControlPanel(QWidget):
 
     def toggle(self):
         self.expanded = not self.expanded
+        if not self.expanded:
+            self._editing_hero = False
+            self.search_feedback.hide()
         self._away_since, self._hovered, self._auto_opened, self._hold_for_hero = None, False, False, False
         log.debug("浮窗%s", "展开" if self.expanded else "收起")
         self._place_body()
@@ -931,6 +1049,7 @@ class ControlPanel(QWidget):
         hid = self._names.get(text)
         if hid:
             self.engine.set_hero(hid)
+            self._editing_hero = False
             self.search.clear()
             self.search_feedback.hide()
             self.give_back_focus()
@@ -942,6 +1061,7 @@ class ControlPanel(QWidget):
             self.search_feedback.show()
             return
         self.engine.set_hero(hid)
+        self._editing_hero = False
         self.search.clear()
         self.search_feedback.hide()
         self.give_back_focus()
@@ -958,8 +1078,8 @@ class ControlPanel(QWidget):
         """图标按钮直径（逻辑像素）。"""
         if self.btn.width() != d:
             self.btn.setFixedSize(d, d)
-            self.btn.setIconSize(QSize(round(d * 0.75), round(d * 0.75)))
-            self.btn.setStyleSheet(self.BTN_STYLE % (d // 2))
+            self.btn.setIconSize(QSize(round(d * 0.9), round(d * 0.9)))
+            self.btn.setStyleSheet(self.BTN_STYLE % max(5, round(d * .24)))
 
     def _game_position(self, rect, width: int, scale: float) -> tuple[int, int]:
         x = rect.right - width - round(12 * scale) if self.corner == "top-right" else rect.left + round(12 * scale)
@@ -995,6 +1115,7 @@ class ControlPanel(QWidget):
     def place(self, rect, in_client: bool = False) -> None:
         """rect：游戏或客户端窗口（物理像素）。在客户端（大厅、选英雄）且浮窗在右上角时，
         图标放在头像右边「在线」那一行、铃铛左边，大小跟着客户端窗口走；进游戏后和以前一样贴在右上角。"""
+        self._bounds = rect
         self._sync_no_activate()
         badge = client_badge(rect) if in_client and rect is not None and self.corner == "top-right" else None
         k = self.devicePixelRatioF() or 1.0
@@ -1110,6 +1231,7 @@ class ControlPanel(QWidget):
                 self._auto_opened = True
         if not self.expanded:
             return
+        self._latest_snap = snap
         self._ensure_completer()
         show_win = snap.get("settings", {}).get("show_winrate", True)
         h = snap.get("hero")
@@ -1121,16 +1243,28 @@ class ControlPanel(QWidget):
             if b.get("grade"):
                 rating.append(f"评级 {b['grade']}")
             if b.get("rank"):
-                rating.append(f"胜率第{b['rank']}/{b.get('total') or '?'}")
-            if show_win and r.get("win") is not None:
-                rating.append(f"胜率 {_pct(r['win'])}")
+                rating.append(f"胜率排名 {b['rank']}/{b.get('total') or '?'}")
             if r.get("pick") is not None:
                 rating.append(f"出场 {_pct(r['pick'])}")
-            hero_html = f"<b style='color:#e7c35a;font-size:14px'>{h['name']}</b> {h['nick']}<br>{' · '.join(rating)}"
+            hero_html = (f"<b style='font-size:18px'>{escape(h['name'])}</b>　{escape(h['nick'])}<br>"
+                         f"<span style='font-size:11px;color:#4a6255'>{' · '.join(rating)}</span>")
+            metric = (f"<b style='font-size:19px'>{_pct(r['win'])}</b><br>英雄胜率"
+                      if show_win and r.get("win") is not None else "")
+            alias = h.get("alias") or ""
         else:
-            hero_html = "<span style='color:#e7c35a'>未识别到英雄，请手动选择</span>"
+            hero_html = "<b>未识别到英雄，请手动选择</b>"
+            metric, alias = "", ""
+        if alias != self._portrait_key:
+            self._portrait_key = alias
+            pic = desktop_style.portrait(alias) if alias else QPixmap()
+            self.portrait.setPixmap(pic if not pic.isNull() else self.btn.icon().pixmap(38, 38))
         if self.hero_label.text() != hero_html:
             self.hero_label.setText(hero_html)
+        if self.rate_label.text() != metric:
+            self.rate_label.setText(metric)
+        self.search_row.setVisible(not hid or self._editing_hero)
+        self.edit_hero.setVisible(bool(hid))
+        self.edit_hero.setText("收起搜索" if self._editing_hero else "换英雄")
         self._set_candidates(snap.get("candidates") or [])
 
         parts = []
@@ -1145,23 +1279,17 @@ class ControlPanel(QWidget):
             pk = recommend.pentakill_text(ev.get("pentakill"), show_win=show_win) if not waiting else ""
             if pk:
                 parts.append(f"<span style='color:#c9a0ff'>{escape(pk)}</span>")
-        if d:
-            parts.extend(buildview.lines(d, self.engine.icons, show_win, size=22, compact=True))
-            sk = buildview.skills_line(d, show_win)
-            if sk:
-                parts.append(sk)
-            from ..panel import split_augment_samples
-            qualified, low = split_augment_samples(d.get("augments", []), self.engine.settings.reliable_games)
-            for label, rows in (("推荐海克斯", qualified[:5]), ("小样本参考", low[:2])):
-                if rows:
-                    parts.append(label + "：" + "、".join(
-                        f"{escape(a['name'])}({a['delta']:+.1f}，{escape(a['evidence_scope'])}{a['evidence_games']:,}局)"
-                        for a in rows))
+        limit = getattr(self.engine.settings, "reliable_games", recommend.RELIABLE_GAMES)
+        key = self._view, show_win, limit, getattr(self.engine.icons, "version", 0)
+        if self._cached_panel is not d or self._detail_key != key:
+            self._details = render_details(d, self.engine.icons, show_win, limit, self._view)
+            self._cached_panel, self._detail_key = d, key
+        parts.append(self._details)
         if snap.get("vision", {}).get("blank"):
             parts.append("<span style='color:#ff7a6b'>游戏可能是全屏模式，无法识别。请在游戏内设置-窗口模式中选择无边框/窗口。</span>")
-        parts.append(f"<span style='color:#8b93a7'>{data_status_html(snap.get('data', {}))}</span>")
-        parts.append("<a href='rescan' style='color:#62a8ff'>重新识别</a>　"
-                     "<a href='quit' style='color:#ff7a6b'>退出助手</a>")
+        status = data_status_html(snap.get("data", {}))
+        if self.source.text() != status:
+            self.source.setText(status)
         html = "<br>".join(parts)
         if self.info.text() != html:
             self.info.setText(html)

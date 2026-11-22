@@ -409,3 +409,20 @@ def test_auto_open_collapses_after_dodge(panel):
     p.update_from({"hero_id": None, "phase": "client"})
     p.update_from({"hero_id": "1", "phase": "client"})   # 下一把同一个英雄：再自动展开
     assert p.expanded
+
+
+def test_long_details_scroll_inside_a_short_game_window(panel):
+    p = panel.p
+    bounds = panel.overlay.win.Rect(0, 0, 1024, 576)
+    p.place(bounds)
+    p.toggle()
+    p.info.setText("<br>".join(f"装备 {n}" for n in range(100)))
+    p._place_body()
+    panel.app.processEvents()
+    p._place_body()
+    assert p.body_win.y() + p.body_win.height() <= bounds.bottom
+    assert p.info_scroll.verticalScrollBar().maximum() > 0
+    position = p.pos()
+    p.pages.button(1).click()
+    assert p.expanded and p.pos() == position
+    assert not p._typing_on
