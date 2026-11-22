@@ -1,12 +1,20 @@
-# DD HEX 海克斯助手 0.1.4
+# DD HEX 海克斯助手 0.1.5
 
 基于 [czgreat/aramhex](https://github.com/czgreat/aramhex) 的独立 Windows 衍生版本。暂定品牌为 **DD HEX**，不是原作者发行版，也不暗示原作者为本版本背书。
 
 第一版保留截图 OCR、选英雄胜率、三/四选一推荐、出装与加点、游戏浮窗和托盘。只截屏识别，不读取游戏内存、不注入、不接 LCU 或游戏 2999 接口、不模拟输入。
 
+## 0.1.5 珠光工具栏与出装表
+
+顶部导航使用淡珠光效果。英雄资料页逐列展示三件装备的名称、出场率与胜率，窄窗口会调整布局。
+
+![英雄资料页](docs/pearl/Hero.png)
+
+[选卡页](docs/pearl/Choice.png) · [设置页](docs/pearl/Settings.png)
+
 ## 第一版改动
 
-- 独立版本 `0.1.4`、DD 图标、`DD HEX.exe`、安装 AppId、单实例、自启项和 `%APPDATA%\DD HEX` 数据目录，便携版仍使用程序旁 `userdata`。
+- 独立版本 `0.1.5`、DD 图标、`DD HEX.exe`、安装 AppId、单实例、自启项和 `%APPDATA%\DD HEX` 数据目录，便携版仍使用程序旁 `userdata`。
 - 设置里可调：胜率数字显示、平滑强度（默认 300 局）、首选样本门槛（默认 1000 局）。修改立即生效并保存；原始胜率、场次和数据口径保留。数据不足时明确标注。
 - 默认使用内置快照；统计更新需要主动勾选，之后仅从公开 `czgreat/aramhex-data` GitHub 数据仓库获取并校验 SHA-256。数据是部分对局样本，不代表全服，不保证预测结果。
 - 忽略原版云控缓存，禁用匿名编号、日志上传、远程调试及账号查分。软件更新源默认留空，保留独立仓库更新、增量替换与回滚实现，拒绝原作者程序/数据仓库作为软件更新源。
@@ -14,7 +22,7 @@
 
 ## Windows 今晚试用
 
-下载 [DD-HEX-0.1.4-Windows-x64.zip](https://github.com/ohoho395/DD-HEX/releases/tag/v0.1.4)，完整解压到可写目录，双击 DD HEX.exe。运行时和 OCR 模型已经随包提供。随包数据详见 [数据来源](docs/DATA-SOURCES.md)。
+下载 [DD-HEX-0.1.5-Windows-x64.zip](https://github.com/ohoho395/DD-HEX/releases/tag/v0.1.5)，完整解压到可写目录，双击 DD HEX.exe。运行时和 OCR 模型已经随包提供。随包数据详见 [数据来源](docs/DATA-SOURCES.md)。
 
 ## Windows 源码运行
 
