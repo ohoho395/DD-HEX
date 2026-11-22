@@ -17,6 +17,11 @@ def command(root, *args):
     return subprocess.run(["git", *args], cwd=root, check=True, capture_output=True, text=True).stdout.strip()
 
 
+@pytest.fixture(autouse=True)
+def no_retry_delay(monkeypatch):
+    monkeypatch.setattr(publisher.time, "sleep", lambda seconds: None)
+
+
 @pytest.fixture
 def checkout(tmp_path):
     (tmp_path / "lolhex").mkdir()
@@ -45,6 +50,10 @@ class FakeGitHub:
         self.annotated = annotated
         self.hide_drafts_by_tag = False
         self.list_first_full_page = False
+        self.hide_list = False
+        self.id_not_found_reads = 0
+        self.stale_asset_reads = 0
+        self.stale_published_reads = 0
         self.remote_commit = env["GITHUB_SHA"]
         self.corrupt_upload = False
         self.incomplete_upload = False
@@ -59,6 +68,18 @@ class FakeGitHub:
             return {"ref": "refs/tags/v1.2.3", "object": {"type": "tag" if self.annotated else "commit", "sha": "a" * 40 if self.annotated else self.remote_commit}}
         if endpoint == prefix + "/git/tags/" + "a" * 40:
             return {"object": {"type": "commit", "sha": self.remote_commit}}
+        if endpoint == prefix + "/releases/41":
+            if self.id_not_found_reads:
+                self.id_not_found_reads -= 1
+                raise publisher.ApiError(404)
+            found = deepcopy(self.release)
+            if self.stale_asset_reads and found["assets"]:
+                self.stale_asset_reads -= 1
+                found["assets"] = []
+            if self.stale_published_reads and not found["draft"]:
+                self.stale_published_reads -= 1
+                found["draft"] = True
+            return found
         if endpoint == prefix + "/commits/main":
             return {"sha": self.remote_commit}
         if endpoint == prefix + "/releases/tags/v1.2.3":
@@ -69,18 +90,26 @@ class FakeGitHub:
             page = int(endpoint.rsplit("=", 1)[1])
             if self.list_first_full_page and page == 1:
                 return [{"tag_name": f"v0.0.{number}"} for number in range(100)]
-            return [deepcopy(self.release)] if self.release is not None else []
+            return [deepcopy(self.release)] if self.release is not None and not self.hide_list else []
         raise AssertionError("Unexpected endpoint: " + endpoint)
+
+    def create_draft(self, repo, tag, commit):
+        assert repo == self.env["GITHUB_REPOSITORY"] and commit == self.env["GITHUB_SHA"]
+        self.calls.append(("create", (repo, tag, commit)))
+        assert self.release is None
+        self.release = self.metadata()
+        return deepcopy(self.release)
+
+    def draft_for(self, repo, tag):
+        assert repo == self.env["GITHUB_REPOSITORY"] and tag == "v1.2.3"
+        self.calls.append(("discover", tag))
+        return deepcopy(self.release)
 
     def run(self, *args):
         self.calls.append(("run", args))
         assert "--clobber" not in args
         assert args[args.index("--repo") + 1] == self.env["GITHUB_REPOSITORY"]
-        if args[:2] == ("release", "create"):
-            assert "--draft" in args and "--verify-tag" in args
-            assert args[args.index("--target") + 1] == self.env["GITHUB_SHA"]
-            self.release = self.metadata()
-        elif args[:2] == ("release", "upload"):
+        if args[:2] == ("release", "upload"):
             paths = args[3:args.index("--repo")]
             for index, path in enumerate(paths):
                 if self.incomplete_upload and index:
@@ -113,7 +142,8 @@ class FakeGitHub:
 
 
 def mutations(gh):
-    return [args for action, args in gh.calls if action == "run"]
+    return [("release", "create", *args) if action == "create" else args
+            for action, args in gh.calls if action in ("run", "create")]
 
 
 def test_local_preflight_uses_source_ast_and_peels_annotated_event(checkout, monkeypatch):
@@ -299,3 +329,44 @@ def test_duplicate_matching_drafts_are_rejected_before_upload(checkout):
     with pytest.raises(publisher.PublishError, match="Multiple releases"):
         publisher.publish(root, env, gh)
     assert mutations(gh) == []
+
+
+@pytest.mark.parametrize("existing", [False, True])
+def test_stale_listing_does_not_hide_created_or_resumed_draft(checkout, existing):
+    root, env = checkout
+    gh = FakeGitHub(root, env)
+    gh.hide_drafts_by_tag, gh.hide_list = True, True
+    gh.id_not_found_reads = 1
+    gh.stale_asset_reads, gh.stale_published_reads = 1, 1
+    if existing:
+        gh.release = gh.metadata()
+    assert publisher.publish(root, env, gh) == "published"
+    assert sum(args[1] == "create" for args in mutations(gh)) == (0 if existing else 1)
+    assert any(endpoint.endswith("/releases/41") for action, endpoint in gh.calls if action == "api")
+
+
+def test_numeric_id_visibility_retry_is_bounded(checkout):
+    root, env = checkout
+    gh = FakeGitHub(root, env)
+    gh.hide_drafts_by_tag, gh.hide_list = True, True
+    gh.id_not_found_reads = 20
+    with pytest.raises(publisher.ApiError):
+        publisher.publish(root, env, gh)
+    assert sum(endpoint.endswith("/releases/41") for action, endpoint in gh.calls if action == "api") == 4
+    assert [args[1] for args in mutations(gh)] == ["create"]
+
+
+def test_production_draft_create_captures_id_and_pending_lookup_uses_graphql(checkout, monkeypatch):
+    root, env = checkout
+    gh = publisher.GitHub(root, env)
+    calls = []
+    def api(endpoint, *options):
+        calls.append((endpoint, options))
+        if endpoint == "graphql":
+            return {"data": {"repository": {"release": {"databaseId": 41, "tagName": "v1.2.3"}}}}
+        return {"id": 41}
+    monkeypatch.setattr(gh, "api", api)
+    assert gh.create_draft(env["GITHUB_REPOSITORY"], "v1.2.3", env["GITHUB_SHA"])["id"] == 41
+    assert "POST" in calls[0][1] and "draft=true" in calls[0][1] and "tag_name=v1.2.3" in calls[0][1]
+    assert gh.draft_for(env["GITHUB_REPOSITORY"], "v1.2.3")["id"] == 41
+    assert calls[-2][0] == "graphql" and calls[-1][0] == "repos/independent/ddhex/releases/41"

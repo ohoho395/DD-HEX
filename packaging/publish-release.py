@@ -16,6 +16,7 @@ import re
 import subprocess
 import sys
 import tempfile
+import time
 
 ROOT = Path(__file__).resolve().parents[1]
 STABLE = re.compile(r"(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)")
@@ -110,9 +111,9 @@ class GitHub:
             raise PublishError("GitHub CLI operation failed; any existing draft was retained.")
         return result.stdout
 
-    def api(self, endpoint):
+    def api(self, endpoint, *options):
         try:
-            result = subprocess.run(["gh", "api", endpoint, "--hostname", "github.com", "--include"],
+            result = subprocess.run(["gh", "api", endpoint, "--hostname", "github.com", "--include", *options],
                                     cwd=self.root, env=self.env, capture_output=True, check=False)
         except OSError:
             raise PublishError("The official gh CLI is required.") from None
@@ -125,6 +126,32 @@ class GitHub:
             return json.loads(response.split(b"\n\n", 1)[1])
         except (ValueError, IndexError):
             raise PublishError("GitHub API returned an invalid JSON response.") from None
+
+    def create_draft(self, repo, tag, commit):
+        # Capture the created numeric ID directly: tag/list endpoints can lag.
+        # remote_tag_commit is checked immediately before this request, serving
+        # the same no-new-tag purpose as gh release create --verify-tag.
+        return self.api(f"repos/{repo}/releases", "--method", "POST",
+                        "--raw-field", f"tag_name={tag}", "--raw-field", f"target_commitish={commit}",
+                        "--field", "draft=true", "--field", "prerelease=false",
+                        "--raw-field", f"name=DD HEX {tag[1:]}",
+                        "--raw-field", f"body=DD HEX {tag[1:]} Windows 10/11 x64。安装版、便携版及 SHA-256 校验和。")
+
+    def draft_for(self, repo, tag):
+        # Same pending-tag lookup used by the official gh release commands.
+        owner, name = repo.split("/", 1)
+        query = "query($owner:String!,$name:String!,$tag:String!){repository(owner:$owner,name:$name){release(tagName:$tag){databaseId tagName}}}"
+        response = self.api("graphql", "--method", "POST", "--raw-field", f"query={query}",
+                            "--raw-field", f"owner={owner}", "--raw-field", f"name={name}", "--raw-field", f"tag={tag}")
+        repository = (response.get("data") or {}).get("repository")
+        if response.get("errors") or not isinstance(repository, dict):
+            raise PublishError("Authenticated draft discovery could not be verified; no draft was created.")
+        found = repository.get("release")
+        if found is None:
+            return None
+        if (found.get("tagName") != tag or type(found.get("databaseId")) is not int or found["databaseId"] <= 0):
+            raise PublishError("Pending release identity could not be verified.")
+        return self.api(f"repos/{repo}/releases/{found['databaseId']}")
 
     def asset_digest(self, repo, asset_id):
         if type(asset_id) is not int or asset_id <= 0:
@@ -187,6 +214,8 @@ def release_for(gh, repo, tag):
         if len(rows) < 100:
             break
         page += 1
+    if known is None and not matches:
+        known = gh.draft_for(repo, tag)
     if known is not None and not any(row.get("id") == known.get("id") for row in matches):
         matches.append(known)
     if len(matches) > 1:
@@ -231,6 +260,30 @@ def verify_release(gh, repo, tag, commit, release, local, *, complete):
     return set(local) - set(remote)
 
 
+def verified_release_by_id(gh, repo, tag, commit, release_id, local, *, complete=False, published=False):
+    """Retry only missing visibility/assets/state, never conflicting content."""
+    if type(release_id) is not int or release_id <= 0:
+        raise PublishError("Release has no valid numeric identity.")
+    for attempt, delay in enumerate((0, 1, 2, 4)):
+        if delay:
+            time.sleep(delay)
+        try:
+            release = gh.api(f"repos/{repo}/releases/{release_id}")
+        except ApiError as exc:
+            if exc.status == 404 and attempt < 3:
+                continue
+            raise
+        if not isinstance(release, dict) or release.get("id") != release_id:
+            raise PublishError("Release identity changed; no further publishing was attempted.")
+        missing = verify_release(gh, repo, tag, commit, release, local, complete=False)
+        if (complete and missing) or (published and release["draft"]):
+            if attempt < 3:
+                continue
+            raise PublishError("Release visibility or required assets could not be confirmed; no assets were replaced.")
+        return release
+    raise PublishError("Release could not be verified by its numeric identity.")
+
+
 def publish(root, env, gh=None):
     repo, tag, commit = preflight(root, env)
     local = artifacts(root, tag[1:])
@@ -241,30 +294,24 @@ def publish(root, env, gh=None):
         raise PublishError("Remote tag points to another commit; nothing was published.")
     release = release_for(gh, repo, tag)
     if release is None:
-        gh.run("release", "create", tag, "--repo", repo, "--draft", "--verify-tag", "--target", commit,
-               "--title", f"DD HEX {tag[1:]}", "--notes", f"DD HEX {tag[1:]} Windows 10/11 x64。安装版、便携版及 SHA-256 校验和。")
-        release = release_for(gh, repo, tag)
-        if release is None:
-            raise PublishError("Created draft could not be verified; no assets were published.")
+        if remote_tag_commit(gh, repo, tag) != commit:
+            raise PublishError("Remote tag changed before draft creation; nothing was published.")
+        created = gh.create_draft(repo, tag, commit)
+        verify_release(gh, repo, tag, commit, created, local, complete=False)
+        release = verified_release_by_id(gh, repo, tag, commit, created["id"], local)
     missing = verify_release(gh, repo, tag, commit, release, local, complete=not release["draft"])
     if not release["draft"]:
         return "already published"
     release_id = release["id"]
     if missing:
         gh.run("release", "upload", tag, *[str(local[name]["path"]) for name in sorted(missing)], "--repo", repo)
-    release = release_for(gh, repo, tag)
-    if release is None or release.get("id") != release_id:
-        raise PublishError("Release identity changed during upload; no publishing was attempted.")
-    verify_release(gh, repo, tag, commit, release, local, complete=True)
+    release = verified_release_by_id(gh, repo, tag, commit, release_id, local, complete=True)
     if not release["draft"]:
         return "already published"
     if remote_tag_commit(gh, repo, tag) != commit:
         raise PublishError("Remote tag changed during upload; draft was retained.")
     gh.run("release", "edit", tag, "--repo", repo, "--draft=false", "--verify-tag")
-    final = release_for(gh, repo, tag)
-    if final is None or final.get("id") != release_id or final.get("draft") is not False:
-        raise PublishError("Release publication could not be confirmed.")
-    verify_release(gh, repo, tag, commit, final, local, complete=True)
+    verified_release_by_id(gh, repo, tag, commit, release_id, local, complete=True, published=True)
     return "published"
 
 
