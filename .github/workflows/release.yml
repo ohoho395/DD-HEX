@@ -1,8 +1,8 @@
-# Independent fork: build reviewed artifacts on demand; publishing is a separate
-# maintainer action. No release, branch or data-repository writes occur here.
-name: DD HEX 手动构建
+name: DD HEX Windows 构建与发布
 
 on:
+  push:
+    tags: ['v[0-9]+.[0-9]+.[0-9]+']
   workflow_dispatch:
     inputs:
       portable_tag:
@@ -19,44 +19,33 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ddhex-windows-${{ github.event_name }}-${{ github.ref }}-${{ github.event_name == 'workflow_dispatch' && github.run_id || 'release' }}
+  cancel-in-progress: false
+
 env:
   PYTHONUTF8: "1"
   PYTHONIOENCODING: utf-8
 
 jobs:
-  build:
-    if: ${{ inputs.portable_tag == '' }}
-    runs-on: windows-latest
-    defaults:
-      run:
-        shell: pwsh
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-python@v6
-        with:
-          python-version: "3.13"
-          cache: pip
-      - name: 安装依赖
-        run: python -m pip install -r requirements-build.txt
-      - name: 检查已提交的内置资料
-        run: python scripts/check_release_data.py
-      - name: 测试
-        env:
-          QT_QPA_PLATFORM: offscreen
-        run: python -m pytest -q
-      - name: 安装 Inno Setup
-        run: choco install innosetup --no-progress -y
-      - name: 打包并运行 Windows Qt 和 OCR 自检
-        run: pwsh -NoProfile -File packaging/build.ps1 -PythonExe python
-      - name: 保留安装包、便携版与校验和（供维护者审核）
-        uses: actions/upload-artifact@v4
-        with:
-          name: DD HEX-Windows
-          path: build/release/*
-          if-no-files-found: error
+  release-windows:
+    if: github.event_name == 'push' && github.ref_type == 'tag' && !github.event.deleted
+    permissions:
+      contents: write
+    uses: ./.github/workflows/windows-package.yml
+    with:
+      official: true
+
+  test-windows:
+    if: github.event_name == 'workflow_dispatch' && inputs.portable_tag == ''
+    permissions:
+      contents: read
+    uses: ./.github/workflows/windows-package.yml
+    with:
+      official: false
 
   validate-portable:
-    if: ${{ inputs.portable_tag != '' }}
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.portable_tag != '' }}
     runs-on: windows-latest
     timeout-minutes: 15
     defaults:
