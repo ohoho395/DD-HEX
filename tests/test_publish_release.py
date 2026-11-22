@@ -283,3 +283,19 @@ def test_published_release_branch_movement_does_not_change_tag_identity(checkout
     assert publisher.publish(root, env, gh) == "already published"
     assert mutations(gh) == []
     assert not any("/commits/" in endpoint for action, endpoint in gh.calls if action == "api")
+
+
+
+def test_duplicate_matching_drafts_are_rejected_before_upload(checkout):
+    root, env = checkout
+    gh = FakeGitHub(root, env)
+    gh.release = gh.metadata()
+    original = gh.api
+    def duplicate(endpoint):
+        if "/releases?" in endpoint:
+            return [gh.metadata(), dict(gh.metadata(), id=42)]
+        return original(endpoint)
+    gh.api = duplicate
+    with pytest.raises(publisher.PublishError, match="Multiple releases"):
+        publisher.publish(root, env, gh)
+    assert mutations(gh) == []

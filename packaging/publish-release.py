@@ -166,8 +166,13 @@ def remote_tag_commit(gh, repo, tag):
 
 
 def release_for(gh, repo, tag):
+    known = None
     try:
-        return gh.api(f"repos/{repo}/releases/tags/{tag}")
+        known = gh.api(f"repos/{repo}/releases/tags/{tag}")
+        if not isinstance(known, dict):
+            raise PublishError("Release metadata is not an object.")
+        if known.get("draft") is False:
+            return known
     except ApiError as exc:
         if exc.status != 404:
             raise
@@ -182,6 +187,8 @@ def release_for(gh, repo, tag):
         if len(rows) < 100:
             break
         page += 1
+    if known is not None and not any(row.get("id") == known.get("id") for row in matches):
+        matches.append(known)
     if len(matches) > 1:
         raise PublishError("Multiple releases match this tag; no draft was created or modified.")
     return matches[0] if matches else None
