@@ -1,0 +1,65 @@
+name: Windows 打包
+on:
+  workflow_call:
+    inputs:
+      official:
+        type: boolean
+        required: true
+
+jobs:
+  package:
+    runs-on: windows-latest
+    timeout-minutes: 40
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      PYTHONUTF8: "1"
+      PYTHONIOENCODING: utf-8
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+          cache: pip
+      - name: 核对正式标签和程序版本
+        if: inputs.official
+        run: python packaging/publish-release.py --check-version
+      - name: 准备打包环境
+        run: |
+          python -m venv .venv
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          .\.venv\Scripts\python.exe -m pip install -r requirements-build.txt
+      - name: 核对内置资料
+        run: .\.venv\Scripts\python.exe scripts/check_release_data.py
+      - name: 回归测试
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: .\.venv\Scripts\python.exe -m pytest -q
+      - name: 准备 Inno Setup
+        run: |
+          if (-not (Test-Path "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe")) {
+            choco install innosetup --no-progress -y
+            if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          }
+      - name: 构建安装包和便携包并运行原生 Qt 与 OCR 自检
+        run: ./packaging/build.ps1
+      - name: 上传正式安装包、便携包和校验和至 Releases
+        if: inputs.official && github.event_name == 'push' && github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python packaging/publish-release.py
+      - name: 保留临时测试包 3 天
+        if: ${{ !inputs.official && github.event_name == 'workflow_dispatch' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: DD-HEX-test-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            build/release/DDHEX-Setup-*.exe
+            build/release/DDHEX-Portable-*.zip
+            build/release/SHA256SUMS.txt
+          retention-days: 3
+          if-no-files-found: error
+          compression-level: 0
