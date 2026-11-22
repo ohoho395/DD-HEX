@@ -49,3 +49,11 @@ py -3.13 -m venv .venv
 0.1.3 更新桌面英雄、海克斯和设置三页。英雄页将出装与海克斯排行并排显示；设置页按用途分组。
 
 ![桌面英雄资料页](docs/desktop.png)
+
+## 桌面深色界面预览
+
+这版使用石墨灰和琥珀色，搜索移到英雄资料上方，重点突出胜率和首选。预览基于 0.1.3，用于比较桌面界面。
+
+[下载 Windows 预览版](https://github.com/ohoho395/DD-HEX/releases/tag/v0.1.3-design-preview.1)
+
+![DD HEX 深色界面](docs/design-preview.png)

@@ -22,32 +22,35 @@ def portrait(alias):
     return image
 
 STYLE = """
-QWidget#desktop {background:#f2f3ee; color:#182f30;}
-QLabel {color:#233d3d; background:transparent;}
-QFrame#card {background:#ffffff; border:1px solid #d7dfda; border-radius:10px;}
-QFrame#card[recommended="yes"] {background:#e4f4eb; border:2px solid #187666;}
-QFrame#heroBand {background:qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 #122f32, stop:1 #244d49); border-radius:12px;}
-QLabel#heroText {color:#eff9f2;}
-QLabel#heroMetric {color:#eff9f2;}
-QPushButton {color:#264442; background:#fff; border:1px solid #bdcbc5; border-radius:6px; padding:4px 10px;}
-QPushButton:hover {background:#e9f3ed; border-color:#498776;}
-QPushButton:pressed {background:#d1e8dc;}
-QPushButton:focus, QLineEdit:focus, QComboBox:focus, QSpinBox:focus {border:1px solid #007567;}
-QPushButton#primary {background:#16695e; border:1px solid #16695e; color:white; font-weight:600;}
-QPushButton#primary:hover {background:#10564c;}
-QLineEdit,QComboBox,QSpinBox,QKeySequenceEdit {background:white;color:#203838;border:1px solid #c8d4cd;border-radius:6px;padding:4px 7px;selection-background-color:#136859;selection-color:white;}
-QKeySequenceEdit QLineEdit {border:none;padding:0;}
-QTabWidget::pane {background:white; border:1px solid #d4ded7; border-radius:8px;}
-QTabBar::tab {background:transparent; color:#586d69; border:none; border-bottom:3px solid transparent; padding:8px 16px; margin-right:4px;}
-QTabBar::tab:selected {color:#085e51; border-bottom:3px solid #167667; font-weight:700;}
-QTabBar::tab:hover:!selected {background:#e5ece6;}
-QWidget#page,QWidget#settingsForm,QScrollArea {background:#fff;}
-QLabel#sectionName {color:#244641; font-size:17px; font-weight:700; padding-bottom:5px;}
-QFrame#settingGroup {background:#f6f8f4; border:1px solid #d7dfda; border-radius:8px;}
+QWidget#desktop {background:#111318; color:#E9E7E1;}
+QLabel {color:#E9E7E1; background:transparent;}
+QFrame#card {background:#1E222A; border:1px solid #383D48; border-radius:9px;}
+QFrame#card[recommended="yes"] {background:#302A20; border:1px solid #D8AA64;}
+QFrame#heroBand {background:#23272F; border:1px solid #3A3F48; border-radius:10px;}
+QLabel#heroText, QLabel#heroMetric {color:#F4F1E9;}
+QPushButton {color:#EEEAE0; background:#252932; border:1px solid #404652; border-radius:6px; padding:5px 11px;}
+QPushButton:hover {background:#323640; border-color:#6B6E78;}
+QPushButton:pressed {background:#39342C;}
+QPushButton:focus, QLineEdit:focus, QComboBox:focus, QSpinBox:focus {border:1px solid #E6B973;}
+QPushButton#primary {background:#E6B973; border:1px solid #E6B973; color:#20190F; font-weight:700;}
+QPushButton#primary:hover {background:#F2CA8F;}
+QPushButton:disabled {background:#1C1F26; color:#82848A;}
+QLineEdit,QComboBox,QSpinBox,QKeySequenceEdit {background:#1A1D24;color:#E9E7E1;border:1px solid #3D424D;border-radius:6px;padding:5px 9px;selection-background-color:#D5A76C;selection-color:#20190F;}
+QComboBox QAbstractItemView, QAbstractItemView {background:#242832; color:#E9E7E1; selection-background-color:#51412D;}
+QKeySequenceEdit QLineEdit {border:none;padding:0; background:transparent;}
+QTabWidget::pane {background:#1A1D24; border:1px solid #333844; border-radius:8px;}
+QTabBar::tab {background:transparent; color:#B3B6BE; border:none; border-bottom:3px solid transparent; padding:10px 18px; margin-right:4px;}
+QTabBar::tab:selected {color:#E6B973; border-bottom:3px solid #E6B973; font-weight:700;}
+QTabBar::tab:hover:!selected {background:#20242C;}
+QWidget#page,QWidget#settingsForm,QScrollArea {background:#1A1D24;}
+QLabel#sectionName {color:#F0E5D4; font-size:17px; font-weight:700; padding-bottom:5px;}
+QFrame#settingGroup {background:#22262E; border:1px solid #343946; border-radius:8px;}
 QPushButton#heroChoice {text-align:left; padding:10px; font-size:15px; font-weight:600;}
-QKeySequenceEdit QLineEdit {background:transparent;}
-
-QCheckBox {color:#2c4440; spacing:7px;}
-QProgressBar {border:1px solid #c4d6cb;border-radius:4px;text-align:center;}
-QProgressBar::chunk {background:#7abaa1;}
+QCheckBox {color:#E9E7E1; spacing:8px;}
+QProgressBar {border:1px solid #655742;border-radius:4px;text-align:center;color:#F7E5C7;}
+QProgressBar::chunk {background:#AC8856;}
+QScrollBar:vertical {background:#181B21; width:9px; margin:0;}
+QScrollBar::handle:vertical {background:#4E5360; border:2px solid #181B21; border-radius:4px; min-height:28px;}
+QScrollBar::add-line:vertical,QScrollBar::sub-line:vertical {height:0;}
+QScrollBar::add-page:vertical,QScrollBar::sub-page:vertical {background:transparent;}
 """

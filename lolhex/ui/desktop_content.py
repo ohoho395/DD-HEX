@@ -6,18 +6,18 @@ from ..data.tencent import RARITY_CN
 from . import buildview
 
 
-INK = "#172d30"
-MUTED = "#526768"
-ACCENT = "#006d61"
+INK = "#F0EDE5"
+MUTED = "#B4B9C3"
+ACCENT = "#E6B973"
 
 
-def _text(value, *, size=13, color=INK, bold=False):
+def _text(value, *, size=14, color=INK, bold=False):
     weight = "600" if bold else "400"
     return f"<span style='font-size:{size}px;color:{color};font-weight:{weight}'>{escape(str(value))}</span>"
 
 
 def _heading(name, scope=""):
-    return ("<p style='margin:12px 0 5px'>" + _text(name, size=17, bold=True)
+    return ("<p style='margin:12px 0 5px'>" + _text(name, size=19, bold=True)
             + ("　" + _text(scope, size=12, color=MUTED) if scope else "") + "</p>")
 
 
@@ -100,7 +100,7 @@ def hero_html(d, icons, show_win):
     if ranking and sections:
         content = ("<table width='100%' cellspacing='0' cellpadding='5'><tr>"
                 "<td width='55%' valign='top'>" + "".join(sections) + "</td>"
-                "<td width='45%' valign='top' bgcolor='#f4f7f3'>" + ranking + "</td></tr></table>")
+                "<td width='45%' valign='top' bgcolor='#242832'>" + ranking + "</td></tr></table>")
     else:
         content = ranking or "".join(sections)
     return content + spell_section or _text("当前英雄暂无装备或海克斯资料", color=MUTED)
@@ -127,7 +127,7 @@ def offer_html(row, show_win):
     if row.get("games") is not None:
         lines.append(_text(f"样本 {row['games']:,} 局", color=MUTED))
     if row.get("thin") or row.get("sample_warning"):
-        lines.append(_text("样本太少" if row.get("thin") == "too_few" else "样本偏少", color="#856128"))
+        lines.append(_text("样本太少" if row.get("thin") == "too_few" else "样本偏少", color="#F0C88A"))
     if verdict == "nodata":
         note = recommend.NODATA_NOTE if row.get("basis") == "excluded" else recommend.NEW_NOTE
         lines.append(_text(note, color=MUTED))
