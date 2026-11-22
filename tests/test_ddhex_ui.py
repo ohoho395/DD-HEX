@@ -145,3 +145,13 @@ def test_reliable_threshold_repaints_hero_page_without_switching_hero(window):
     after = w.tab_hero.text()
     assert engine.state["hero_id"] == "17" and after != before
     assert "小样本参考" in after and "100,000 局" in after
+
+
+def test_toolbar_navigation_and_programmatic_tab_changes_stay_in_sync(window):
+    w, _, _ = window
+    for page in (2, 1, 0):
+        w.navigation.button(page).click()
+        assert w.tabs.currentIndex() == w.navigation.checkedId() == page
+    w.tabs.setCurrentIndex(1)
+    assert w.navigation.checkedId() == 1
+    assert not w.tabs.tabBar().isVisible()

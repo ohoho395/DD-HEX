@@ -17,7 +17,7 @@ from importlib import resources
 
 from PySide6.QtCore import QSize, Qt, QThread, QTimer, Signal
 from PySide6.QtGui import QAction, QIcon, QKeySequence, QPixmap
-from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QFrame, QGridLayout,
+from PySide6.QtWidgets import (QApplication, QButtonGroup, QCheckBox, QComboBox, QFrame, QGridLayout,
                                QHBoxLayout, QKeySequenceEdit, QLabel, QLineEdit, QMainWindow, QMenu, QMessageBox, QProgressBar, QScrollArea,
                                QPushButton, QSizePolicy, QSpinBox, QSystemTrayIcon, QTabWidget, QVBoxLayout, QWidget)
 
@@ -197,8 +197,8 @@ BAND_CHOICES = [("", "全体")] + [(c, BANDS[c]) for c in BANDS]
 
 
 def about_html() -> str:
-    links = ["<a style='color:#E6B973' href='https://github.com/czgreat/aramhex'>原项目</a>",
-             f"<a style='color:#E6B973' href='{DATA_HOMEPAGE}'>统计来源</a>（非商业使用）"]
+    links = ["<a style='color:#256951' href='https://github.com/czgreat/aramhex'>原项目</a>",
+             f"<a style='color:#256951' href='{DATA_HOMEPAGE}'>统计来源</a>（非商业使用）"]
     for entry in cloud.community():
         label = escape(entry["name"] + (" " + entry["text"] if entry.get("text") else ""))
         links.append(f"<a href='{escape(entry['url'])}'>{label}</a>" if entry.get("url") else label)
@@ -217,37 +217,73 @@ class MainWindow(QMainWindow):
         self._hint_shown = False
         self.setWindowTitle(f"{APP_NAME} v{__version__}")
         self.setWindowIcon(app_icon())
-        self.resize(940, 780)
+        self.resize(1080, 780)
         self.setStyleSheet(desktop_style.STYLE)
         self.setMinimumSize(360, 260)
 
         root = QWidget()
         root.setObjectName("desktop")
         lay = QVBoxLayout(root)
-        lay.setContentsMargins(18, 14, 18, 12)
-        lay.setSpacing(12)
+        lay.setContentsMargins(18, 12, 18, 10)
+        lay.setSpacing(8)
 
-        # 顶部状态
-        head = QHBoxLayout()
+        self.tabs = QTabWidget()
+        toolbar = desktop_style.PearlToolbar()
+        head = QHBoxLayout(toolbar)
+        head.setContentsMargins(14, 6, 12, 6)
+        head.setSpacing(6)
         logo = QLabel()
-        logo.setPixmap(app_icon().pixmap(40, 40))
-        title = QLabel(f"<b style='font-size:24px;color:#F4F1E9'>DD HEX</b>"
-                       f"&nbsp;&nbsp;<span style='color:#B4B9C3'>海克斯助手 · v{__version__}</span>")
+        logo.setPixmap(app_icon().pixmap(30, 30))
         head.addWidget(logo)
-        head.addWidget(title, 1)
-        self.btn_comm = QPushButton()  # 云控里标了 primary 的社区入口（比如 QQ 群），没有就不显示
+        brand = QLabel("DD HEX")
+        brand.setObjectName("toolbarBrand")
+        head.addWidget(brand)
+        head.addSpacing(12)
+        self.navigation = QButtonGroup(self)
+        for page, title in enumerate(("英雄资料", "海克斯选择", "设置")):
+            button = QPushButton(title)
+            button.setObjectName("toolbarNav")
+            button.setCheckable(True)
+            self.navigation.addButton(button, page)
+            head.addWidget(button)
+        self.navigation.idClicked.connect(self.tabs.setCurrentIndex)
+        self.navigation.button(0).setChecked(True)
+        self.tabs.currentChanged.connect(lambda i: self.navigation.button(i).setChecked(True))
+        head.addStretch(1)
+
+        self.search = QLineEdit()
+        self.search.setObjectName("toolbarSearch")
+        self.search.setPlaceholderText("搜索英雄")
+        self.search.setToolTip("搜索英雄名字、拼音或外号（Ctrl+F）")
+        self.search.setAccessibleName("搜索英雄")
+        self.search.setMinimumWidth(85)
+        self.search.setMaximumWidth(218)
+        self.search.setClearButtonEnabled(True)
+        self.search.returnPressed.connect(self._search_pick)
+        head.addWidget(self.search, 2)
+        focus_search = QAction(self)
+        focus_search.setShortcut(QKeySequence.StandardKey.Find)
+        focus_search.triggered.connect(lambda: self.search.setFocus(Qt.ShortcutFocusReason))
+        self.addAction(focus_search)
+
+        self.btn_comm = QPushButton()
         self.btn_comm.clicked.connect(self._open_primary)
-        self.btn_comm.hide()
         head.addWidget(self.btn_comm)
-        self.btn_dash = QPushButton("帮助")
-        self.btn_dash.clicked.connect(self._open_help)
-        head.addWidget(self.btn_dash)
         self._show_primary()
-        lay.addLayout(head)
+        more = QPushButton("⋯")
+        more.setAccessibleName("更多操作")
+        more.setToolTip("更多操作")
+        more.setFixedWidth(34)
+        menu = QMenu(more)
+        menu.addAction("清除已选英雄", lambda: self.engine.set_hero(None))
+        menu.addAction("使用帮助", self._open_help)
+        more.clicked.connect(lambda: menu.exec(more.mapToGlobal(more.rect().bottomLeft())))
+        head.addWidget(more)
+        lay.addWidget(toolbar)
 
         # 有新版本时才显示
         self.update_bar = _card()
-        self.update_bar.setStyleSheet("QFrame#card{border:1px solid #ad8753;border-radius:6px;background:#302a20}")
+        self.update_bar.setStyleSheet("QFrame#card{border:1px solid #bea57f;border-radius:6px;background:#fcf8ee}")
         ubv = QVBoxLayout(self.update_bar)
         ub = QHBoxLayout()
         ubv.addLayout(ub)
@@ -295,7 +331,7 @@ class MainWindow(QMainWindow):
         summary = QHBoxLayout()
         summary.setSpacing(12)
         self.hero_portrait = QLabel()
-        self.hero_portrait.setFixedSize(66, 66)
+        self.hero_portrait.setFixedSize(52, 52)
         self.hero_portrait.setScaledContents(True)
         self._portrait_key = None
         summary.addWidget(self.hero_portrait)
@@ -303,44 +339,28 @@ class MainWindow(QMainWindow):
         self.hero_label.setObjectName("heroText")
         self.hero_label.setTextFormat(Qt.RichText)
         summary.addWidget(self.hero_label, 1)
-        self.hero_metric = QLabel()
-        self.hero_metric.setObjectName("heroMetric")
-        self.hero_metric.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        summary.addWidget(self.hero_metric)
+
         hl.addLayout(summary)
         self.cs_label = QLabel()  # 选人界面：待选栏按胜率排序的汇总
         self.cs_label.setTextFormat(Qt.RichText)
-        self.cs_label.setStyleSheet("color:#e9f1e9")
+        self.cs_label.setStyleSheet("color:#31483c")
         self.cs_label.setWordWrap(True)
         self.cs_label.hide()
         hl.addWidget(self.cs_label)
         self.cands = QHBoxLayout()
         hl.addLayout(self.cands)
-        row = QHBoxLayout()
-        self.search = QLineEdit()
-        self.search.setPlaceholderText("搜索英雄（名字、拼音或外号）")
-        self.search.returnPressed.connect(self._search_pick)
-        btn_clear = QPushButton("清除")
-        btn_clear.clicked.connect(lambda: self.engine.set_hero(None))
-        row.addWidget(self.search, 1)
-        row.addWidget(btn_clear)
-        brow = QHBoxLayout()
-        brow.addWidget(QLabel("分段"))
+        summary.addWidget(QLabel("参考分段"))
         self.band_box = QComboBox()
+        self.band_box.setAccessibleName("参考分段")
         for code, label in BAND_CHOICES:
             self.band_box.addItem(label, code)
         self.band_box.setCurrentIndex(max(0, self.band_box.findData(engine.settings.data_band or "")))
         self.band_box.currentIndexChanged.connect(lambda i: self.engine.set_band(self.band_box.itemData(i) or None))
-        brow.addWidget(self.band_box)
+        summary.addWidget(self.band_box)
         self.my_rank_label = QLabel()
-        self.my_rank_label.setStyleSheet("color:#B4B9C3")
-        brow.addWidget(self.my_rank_label)
-        row.addLayout(brow)
-        lay.addLayout(row)
+        hl.addWidget(self.my_rank_label)
+        self.my_rank_label.hide()
         lay.addWidget(hc)
-
-        # 标签页
-        self.tabs = QTabWidget()
         self.tab_hero = QLabel()
         self.tab_hero.setTextFormat(Qt.RichText)
         self.tab_hero.setWordWrap(True)
@@ -407,7 +427,14 @@ class MainWindow(QMainWindow):
         self.tabs.addTab(self._settings_tab(), "设置")
         # 设置页底部已有数据状态，小窗口时让表单保留可操作的高度。
         self.tabs.currentChanged.connect(lambda page: sc.setVisible(page != 2))
-        self.tabs.currentChanged.connect(lambda page: hc.setVisible(page != 2))
+        self.tabs.tabBar().hide()
+        self.tabs.currentChanged.connect(lambda page: self.hero_portrait.setVisible(page != 2))
+        self.tabs.currentChanged.connect(lambda page: self.hero_label.setVisible(page != 2))
+        settings_title = QLabel("设置")
+        settings_title.setObjectName("sectionName")
+        summary.insertWidget(2, settings_title, 1)
+        settings_title.hide()
+        self.tabs.currentChanged.connect(lambda page: settings_title.setVisible(page == 2))
         lay.addWidget(self.tabs, 1)
         lay.addWidget(sc)
         # 小屏或高缩放时保留完整内容，允许滚动，不让底部操作落到屏幕外。
@@ -510,7 +537,7 @@ class MainWindow(QMainWindow):
         hotkey_service = getattr(self.overlay, "hotkey", None)
         self.hotkey_status = QLabel(hotkey_service.status if hotkey_service else "游戏或选英雄在前台时启用。")
         self.hotkey_status.setWordWrap(True)
-        self.hotkey_status.setStyleSheet("color:#B4B9C3")
+        self.hotkey_status.setStyleSheet("color:#52635a")
         if hotkey_service:
             hotkey_service.status_changed.connect(self.hotkey_status.setText)
         # 三选一标签放卡片上方还是下方，右边的示意图跟着选项变
@@ -608,7 +635,7 @@ class MainWindow(QMainWindow):
         self.about_label = about
         cv.addWidget(about)
         self.about_data = QLabel()
-        self.about_data.setStyleSheet("color:#B4B9C3")
+        self.about_data.setStyleSheet("color:#52635a")
         self.about_data.setWordWrap(True)
         cv.addWidget(self.about_data)
         self.btn_check = QPushButton("检查更新")
@@ -635,9 +662,10 @@ class MainWindow(QMainWindow):
 
     def _show_rank(self, res: dict):
         text = rank.describe(res)
-        self.rank_result.setText(text or "<span style='color:#B4B9C3'>填自己的「名字#编号」，查区内排名，自动选对应分段</span>")
+        self.rank_result.setText(text or "<span style='color:#52635a'>填自己的「名字#编号」，查区内排名，自动选对应分段</span>")
         r = (res or {}).get("results") or []
         if hasattr(self, "my_rank_label"):
+            self.my_rank_label.setVisible(bool(r))
             self.my_rank_label.setText(f"你：{r[0]['band_name']}（前 {r[0]['top'] * 100:.1f}%）" if r else "")
 
     def _retire_when_done(self, attr: str, worker) -> None:
@@ -690,7 +718,7 @@ class MainWindow(QMainWindow):
         if silent:
             logging.getLogger(__name__).info("自动查分失败：%s", msg)
             return
-        self.rank_result.setText(f"<span style='color:#ff997e'>{escape(msg)}</span>")
+        self.rank_result.setText(f"<span style='color:#9b451f'>{escape(msg)}</span>")
 
     def refresh_rank_if_stale(self):
         """启动时：上次查分超过 7 天就悄悄再查一次（不改你选的分段）。"""
@@ -909,12 +937,12 @@ class MainWindow(QMainWindow):
         try:
             parse_shortcut(text)
         except ValueError as exc:
-            self.hotkey_status.setText(f"<span style='color:#ff997e'>{escape(str(exc))}</span>")
+            self.hotkey_status.setText(f"<span style='color:#9b451f'>{escape(str(exc))}</span>")
             return
         hotkey_service = getattr(self.overlay, "hotkey", None)
         error = hotkey_service.validate(text) if hotkey_service else ""
         if error:
-            self.hotkey_status.setText(f"<span style='color:#ff997e'>{escape(error)}</span>")
+            self.hotkey_status.setText(f"<span style='color:#9b451f'>{escape(error)}</span>")
             return
         if text == s.overlay_hotkey:
             return
@@ -1068,7 +1096,7 @@ class MainWindow(QMainWindow):
             logging.getLogger(__name__).info("有新版本 %s，分批推送还没轮到本机，先不提示", info["version"])
             return
         self._update_info = info
-        notes = f"<br><span style='color:#B4B9C3'>{escape(info['notes'][:200])}</span>" if info.get("notes") else ""
+        notes = f"<br><span style='color:#52635a'>{escape(info['notes'][:200])}</span>" if info.get("notes") else ""
         # 打包后的程序都能先试增量更新；源码运行时只有带安装包地址的才能直接装
         direct = patch.install_root() is not None or (bool(info.get("url")) and not is_portable())
         self.update_text.setText(f"<b>有新版本 {info['version']}</b>（当前 {__version__}）{notes}")
@@ -1238,7 +1266,7 @@ class MainWindow(QMainWindow):
         self.status.setText(
             f"{PHASE_CN.get(snap.get('phase'), snap.get('phase'))}　·　"
             f"识别{VISION_CN.get(v.get('status'), v.get('status'))}"
-            f"{' · <span style=\"color:#ff997e\">游戏可能是全屏模式，无法识别。请在游戏内设置-窗口模式中选择无边框/窗口。</span>' if v.get('blank') else ''}　│　"
+            f"{' · <span style=\"color:#9b451f\">游戏可能是全屏模式，无法识别。请在游戏内设置-窗口模式中选择无边框/窗口。</span>' if v.get('blank') else ''}　│　"
             f"{BANDS.get(dd.get('band_effective'), '全体')} · {data_status_html(dd)}")
         if hasattr(self, "about_data"):
             self.about_data.setText(statistics_settings_text(
@@ -1262,20 +1290,22 @@ class MainWindow(QMainWindow):
                 self.hero_portrait.setPixmap(portrait if not portrait.isNull() else app_icon().pixmap(66, 66))
             name = escape(str(h.get("name") or ""))
             nick = escape(str(h.get("nick") or ""))
-            grade = f"　·　评级 {escape(str(b['grade']))}" if b.get("grade") else ""
-            pick = f"　·　出场率 {_pct(r['pick'])}" if r.get("pick") is not None else ""
-            self.hero_label.setText(f"<b style='font-size:28px'>{name}</b>"
-                                    f"<br><span style='color:#C0C2CA'>{nick}{grade}{pick}</span>")
-            rate = (f"<b style='font-size:29px;color:#E6B973'>{_pct(r['win'])}</b> 胜率"
-                    if show_win and r.get("win") is not None else "")
-            ranking = f"胜率排名 {b['rank']} / {b.get('total') or '?'}" if b.get("rank") else ""
-            self.hero_metric.setText(rate + ("<br>" if rate and ranking else "") + ranking)
+            details = []
+            if show_win and r.get("win") is not None:
+                details.append(f"英雄胜率 <b>{_pct(r['win'])}</b>")
+            if b.get("rank"):
+                details.append(f"排名 {b['rank']} / {b.get('total') or '?'}")
+            if r.get("pick") is not None:
+                details.append(f"出场率 {_pct(r['pick'])}")
+            if r.get("games"):
+                details.append(f"{r['games']:,} 场")
+            self.hero_label.setText(f"<b style='font-size:24px'>{name}</b>　{nick}"
+                                    f"<br><span style='color:#52635a'>{'　·　'.join(details)}</span>")
         else:
             self._portrait_key = None
-            self.hero_portrait.setPixmap(app_icon().pixmap(66, 66))
+            self.hero_portrait.setPixmap(app_icon().pixmap(52, 52))
             self.hero_label.setText("<b style='font-size:20px'>选择英雄</b><br>"
-                                    "<span style='color:#C0C2CA'>未识别到英雄，可搜索名字</span>")
-            self.hero_metric.clear()
+                                    "<span style='color:#52635a'>未识别到英雄，可搜索名字</span>")
         cs = snap.get("champ_select")
         if cs and (cs.get("bench") or cs.get("cards")):
             from .overlay import champ_select_summary
@@ -1287,20 +1317,20 @@ class MainWindow(QMainWindow):
 
         key = (hid, d.get("date"), d.get("data_revision"), d.get("official_revision"),
                d.get("official_origin"), self.engine.icons.version, dd.get("band_effective"), show_win,
-               self.engine.settings.smoothing_games, self.engine.settings.reliable_games) if d else None
+               self.engine.settings.smoothing_games, self.engine.settings.reliable_games, self.width() < 900) if d else None
         self._show_hero_choices(dd, not hid)
         if d and self._panel_hero != key:
             self._panel_hero = key
             self.tab_hero.setText(self._hero_html(d, show_win))
         elif not d:
             self._panel_hero = None
-            self.tab_hero.setText("<span style='color:#B4B9C3'>还没有选英雄。点击头像或搜索名字查看出装与加点。</span>")
+            self.tab_hero.setText("<span style='color:#52635a'>还没有选英雄。点击头像或搜索名字查看出装与加点。</span>")
         self._render_offer(snap.get("evaluation"), show_win,
                            (snap.get("offer") or {}).get("pending_columns"))
 
     def _hero_html(self, d, show_win) -> str:
         from .desktop_content import hero_html
-        return hero_html(d, self.engine.icons, show_win, self.engine.settings.reliable_games)
+        return hero_html(d, self.engine.icons, show_win, self.engine.settings.reliable_games, compact=self.width() < 900)
 
     def _render_offer(self, ev, show_win, pending=None):
         from .desktop_content import offer_html
@@ -1324,18 +1354,18 @@ class MainWindow(QMainWindow):
                 continue
             row = slots[i]
             if pending and row["index"] < len(pending) and pending[row["index"]]:
-                lab.setText("<span style='color:#B4B9C3'>识别中…</span>")
+                lab.setText("<span style='color:#52635a'>识别中…</span>")
                 lab.setToolTip("")
                 continue
             lab.setText(offer_html(row, show_win))
             lab.setToolTip("\n".join(row.get("reasons") or []) if show_win else "")
         if not ev:
-            self.offer_advice.setText("<span style='color:#B4B9C3'>未在选海克斯</span>")
+            self.offer_advice.setText("<span style='color:#52635a'>未在选海克斯</span>")
             return
         advice = "卡片更新中，等待识别确认" if waiting else ev["advice"]
         pk = recommend.pentakill_text(ev.get("pentakill"), show_win=show_win) if not waiting else ""
-        self.offer_advice.setText(f"<b style='font-size:20px;color:#F4F1E9'>{escape(advice)}</b>"
-                                  + (f"<br><span style='color:#B4B9C3'>{escape(pk)}</span>" if pk else ""))
+        self.offer_advice.setText(f"<b style='font-size:20px;color:#263730'>{escape(advice)}</b>"
+                                  + (f"<br><span style='color:#52635a'>{escape(pk)}</span>" if pk else ""))
 
     # ---------- 窗口行为 ----------
 
