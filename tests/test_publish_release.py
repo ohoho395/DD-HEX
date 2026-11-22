@@ -100,6 +100,13 @@ class FakeGitHub:
         self.release = self.metadata()
         return deepcopy(self.release)
 
+    def publish_draft(self, repo, release_id):
+        assert repo == self.env["GITHUB_REPOSITORY"] and release_id == self.release["id"]
+        assert len(self.release["assets"]) == 3
+        self.calls.append(("run", ("release", "edit", "--id", release_id)))
+        self.release["draft"] = False
+        return deepcopy(self.release)
+
     def draft_for(self, repo, tag):
         assert repo == self.env["GITHUB_REPOSITORY"] and tag == "v1.2.3"
         self.calls.append(("discover", tag))
@@ -370,3 +377,5 @@ def test_production_draft_create_captures_id_and_pending_lookup_uses_graphql(che
     assert "POST" in calls[0][1] and "draft=true" in calls[0][1] and "tag_name=v1.2.3" in calls[0][1]
     assert gh.draft_for(env["GITHUB_REPOSITORY"], "v1.2.3")["id"] == 41
     assert calls[-2][0] == "graphql" and calls[-1][0] == "repos/independent/ddhex/releases/41"
+    assert gh.publish_draft(env["GITHUB_REPOSITORY"], 41)["id"] == 41
+    assert calls[-1] == ("repos/independent/ddhex/releases/41", ("--method", "PATCH", "--field", "draft=false"))

@@ -137,6 +137,11 @@ class GitHub:
                         "--raw-field", f"name=DD HEX {tag[1:]}",
                         "--raw-field", f"body=DD HEX {tag[1:]} Windows 10/11 x64。安装版、便携版及 SHA-256 校验和。")
 
+    def publish_draft(self, repo, release_id):
+        # The caller has just reverified the immutable tag and complete assets.
+        # Do not rediscover a possibly different release by tag while publishing.
+        return self.api(f"repos/{repo}/releases/{release_id}", "--method", "PATCH", "--field", "draft=false")
+
     def draft_for(self, repo, tag):
         # Same pending-tag lookup used by the official gh release commands.
         owner, name = repo.split("/", 1)
@@ -310,7 +315,7 @@ def publish(root, env, gh=None):
         return "already published"
     if remote_tag_commit(gh, repo, tag) != commit:
         raise PublishError("Remote tag changed during upload; draft was retained.")
-    gh.run("release", "edit", tag, "--repo", repo, "--draft=false", "--verify-tag")
+    gh.publish_draft(repo, release_id)
     verified_release_by_id(gh, repo, tag, commit, release_id, local, complete=True, published=True)
     return "published"
 
