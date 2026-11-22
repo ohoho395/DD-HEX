@@ -110,8 +110,12 @@ pwsh -NoProfile -File packaging\build.ps1
 
 由维护者编辑 `lolhex/distribution.py`：将 `UPDATE_REPO = ""` 改成自己实际控制的 `owner/repository`，重新测试和打包。不要写原作者的程序或数据仓库；程序会拒绝它们。该版本没有默认官网、备用站和远程云控。
 
-独立 Releases 使用 tag `v0.1.1` 等，发布资产 `DDHEX-Setup-0.1.1.exe` 和 `SHA256SUMS.txt`（或 GitHub asset SHA-256 digest）；便携版可附 `DDHEX-Portable-0.1.1.zip`。保留的增量更新工具使用自己的 `updates-v<版本>` tag、manifest 和 gzip 文件，最低客户端与依赖变化必须核对，第三方依赖变化应完整安装。发布器继承了上游 1.1.9 的资料能力，独立官方资料最低客户端版本为 0.1.0。
+独立 Releases 使用 tag `v0.1.1` 等，发布资产 `DDHEX-Setup-0.1.1.exe` 和 `SHA256SUMS.txt`（或 GitHub asset SHA-256 digest）；正式版同时附 `DDHEX-Portable-0.1.1.zip`。保留的增量更新工具使用自己的 `updates-v<版本>` tag、manifest 和 gzip 文件，最低客户端与依赖变化必须核对，第三方依赖变化应完整安装。发布器继承了上游 1.1.9 的资料能力，独立官方资料最低客户端版本为 0.1.0。
 
-`.github/workflows/release.yml` 仅手动 Windows 构建并保存 artifact，不自动发布 Release、不推送标签、不触碰上游仓库。当前交付未创建远端 Fork、未上传源码、未发布安装包。
+### 正式发布与临时测试
+
+- **正式版**：先在要发布的提交更新 `lolhex.__version__`，再为该提交推送相同版本号的稳定标签（格式 `v主.次.补丁`）。Windows 作业运行测试、构建和 Qt/OCR 自检后，把安装包 `DDHEX-Setup-<版本>.exe`、便携包 `DDHEX-Portable-<版本>.zip` 和 `SHA256SUMS.txt` 直接上传到同一 GitHub Release。三份文件校验通过后才公开；Actions 不另存一份正式包。
+- **临时测试**：在 Actions 的 **DD HEX Windows 构建与发布 → Run workflow** 选择待测试分支，保持默认参数。安装包、便携包和校验文件作为一个测试 artifact 保留 **3 天**，可从该次运行下载。手动运行不会创建 Release。
+- 预览或候选标签（如 `v1.2.3-rc.1`）不会触发正式发布。发布中断时应重跑原标签对应的作业；发现已发布文件不一致需使用新版本号。
 
 在「设置 → 本地存储 → 清理截图」可删除助手保存的选卡和调试截图。确认后显示删除数量。清理后仍按原规则保存新截图。
