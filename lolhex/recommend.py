@@ -1,8 +1,8 @@
-"""三选一评分：以本英雄的海克斯胜率为主，官方层级只做兜底。
+"""三选一评分：以本英雄的海克斯胜率为主，官方层级仅展示。
 
 数据来源（依次）：
 1. 自采统计：本英雄 × 这个海克斯的胜率（可按分段）；
-2. 腾讯官方层级 S/A/B/C（没有胜率时粗估）；
+2. 腾讯官方层级 S/A/B/C（仅作参考，不参与胜率推荐）；
 3. 未识别英雄时：自采统计里这个海克斯在所有英雄上的合计胜率。
 
 分数 = 相对该英雄基准胜率的Δ胜率（百分点）：
@@ -28,7 +28,6 @@ from __future__ import annotations
 
 from .data.tencent import RARITY_CN
 
-TIER_PP = {"S": 1.5, "A": 0.5, "B": -0.5, "C": -1.5, "D": -2.5}
 REROLL_BELOW = -0.5  # 低于英雄基准 0.5pp 以上：可考虑刷新
 REROLL_GAP = 2.0     # 比首选低 2pp 以上：可考虑刷新
 RELIABLE_GAMES = 1000  # 本英雄局数达到这个数才能当首选
@@ -267,29 +266,22 @@ def evaluate(store, hero_id: str | None, slots: list[str | None], k: int = 300,
         # 2) 未识别英雄：所有英雄合计的胜率
         if r["score"] is None and not hero_id:
             g = global_augs.get(aid)
-            if g and g.get("win") and global_mean:
+            if g and g.get("win") is not None and g.get("games", 0) > 0 and global_mean is not None:
                 d = (g["win"] - global_mean) * 100
                 r.update(win=g["win"], games=g.get("games"), score=round(d, 2), basis="global_win")
                 r["reasons"].append(f"全英雄胜率 {g['win'] * 100:.1f}%，较平均 {d:+.1f}pp")
-        # 3) 只有官方层级
-        if r["score"] is None and r.get("tier") in TIER_PP:
-            r["score"] = TIER_PP[r["tier"]]
-            r["basis"] = "tier_only"
-            r["reasons"].append("没有胜率数据，按官方层级估计，可信度低")
-        # 4) 新海克斯（测试服 / 刚上线）：统计里还没有，不当成「几乎不选」去扣分。
-        #    腾讯上线后可能去掉 isPBE 标记，所以整份统计里一局都没有的也算新的
-        if r["score"] is None and (meta.get("new") or (global_augs and aid not in global_augs)):
-            r.update(verdict="nodata", basis="new")
-            r["reasons"].append(NEW_NOTE)
-            results.append(r)
-            continue
+        # 无观察样本时保留识别结果、评级与原因，但不生成可参与排序的分数。
         if r["score"] is None:
-            if hero_id and (official or ag):
-                r["score"] = -3.0
-                r["basis"] = "rare"
-                r["reasons"].append("该英雄几乎不选，数据不足")
+            r["verdict"] = "nodata"
+            if r.get("tier"):
+                r["basis"] = "tier_only"
+                r["reasons"].append("仅有官方评级，暂无胜率样本")
+            elif meta.get("new") or (global_augs and aid not in global_augs):
+                r["basis"] = "new"
+                r["reasons"].append(NEW_NOTE)
             else:
-                r["reasons"].append("暂无可靠数据")
+                r["basis"] = "rare"
+                r["reasons"].append("本英雄暂无可靠样本" if hero_id else "暂无可靠样本")
         results.append(r)
 
     # 正式服的新海克斯也沿用明确的显示口径；不改原始 win、局数、打分和首选规则。
@@ -337,7 +329,7 @@ def evaluate(store, hero_id: str | None, slots: list[str | None], k: int = 300,
             r["verdict"] = "ok"
 
     if best is None:
-        advice = "暂无可靠数据，请自行判断"
+        advice = "暂无可靠推荐，请自行判断"
     elif len(slots) in (3, 4) and len(scored) == len(slots) and all(r.get("sample_warning") for r in scored):
         advice = f"{_cards(slots)}样本都偏少，「{best.get('name')}」相对好一点，仅供参考"
     elif best.get("sample_warning"):
@@ -351,8 +343,6 @@ def evaluate(store, hero_id: str | None, slots: list[str | None], k: int = 300,
                                       {"too_few": "样本太少，不可信"}.get(r["thin"], "样本偏少") for r in passed)
     if best is not None and best.get("basis") == "pbe":
         advice += "（测试服数据）"
-    if best is not None and best.get("basis") == "tier_only":
-        advice += "（没有胜率数据，按官方层级）"
     if not hero_id:
         advice += "（未识别英雄，按全英雄数据）"
 

@@ -269,3 +269,31 @@ def test_hidden_pentakill_marker_not_matched(store):
     store.augments["3999"] = {"id": "3999", "name": "", "rarity": "gold"}
     m = store.mayhem_augments()
     assert "3176" not in m and "3999" not in m and "1029" in m
+
+
+def test_no_sample_cards_cannot_win_by_position_or_fallback_score(store):
+    # Known globally and seen by OCR, but no evidence for this hero.
+    ids = ["8001", "8002", "8003", "8004"]
+    for aid in ids:
+        store.augments[aid] = {"id": aid, "name": f"测试{aid}", "rarity": "gold"}
+        store.ranks["augments"][aid] = {"games": 4000, "win": .5}
+    for slots in (ids[:3], ids[::-1], ids[:2] + [None]):
+        ev = recommend.evaluate(store, "17", slots)
+        assert ev["best_index"] is None and "暂无可靠推荐" in ev["advice"]
+        assert all(s["score"] is None for s in ev["slots"])
+        assert all(s["verdict"] == "nodata" for s in ev["slots"] if s.get("augment_id"))
+
+    stats = store.dataset.table(None)[1]["17"]
+    stats["1029"] = {"games": 3000, "wins": 900, "win_rate": .3}
+    ev = recommend.evaluate(store, "17", [ids[0], "1029", ids[1]])
+    assert ev["slots"][1]["score"] < -3
+    assert ev["best_index"] == 1
+
+
+def test_tier_without_samples_is_information_only(store, monkeypatch):
+    hero = {"augments": [{"id": "8001", "tier": "S", "rarity": "gold", "rank": 1}]}
+    monkeypatch.setattr(store, "hero", lambda *_args, **_kwargs: hero)
+    ev = recommend.evaluate(store, "17", ["8001", None, None])
+    assert ev["slots"][0]["tier"] == "S"
+    assert ev["slots"][0]["score"] is None
+    assert ev["best_index"] is None

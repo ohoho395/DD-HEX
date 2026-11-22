@@ -9,9 +9,9 @@
 两个来源，用样本更新的那份：
 - 安装包内置：lolhex/data/bundled/（发版时由 scripts/update_data.py 放进来）；
 - 下载的：<app_home>/data/public/（启动时查数据仓库的 latest.json，有新数据就下载，逐个文件校验 SHA-256）。
-  客户端只访问云控配置的自有服务器地址；服务器内部可以使用自采、腾讯或混合来源。
+  独立版本默认离线；用户开启后才访问公开 GitHub 统计仓库，不访问原作者服务。
 
-官方资料（英雄、海克斯字典、出装、加点）仍由父类 DataStore 直接从腾讯取。
+玩家模式的官方资料（英雄、海克斯字典、出装、加点）由托管本地快照提供。
 """
 
 from __future__ import annotations
@@ -425,6 +425,14 @@ class PublicStore(DataStore):
         self.band: str | None = None
         self.dataset: Dataset | None = None
         self.data_updated_at: float | None = None
+        self.sync_state = "never_checked"
+        self.last_successful_check_at: float | None = None
+        self.last_check_source: str | None = None
+        saved_check = _read(self.root / "statistics-check.json") or {}
+        stamp = saved_check.get("checked_at") if isinstance(saved_check, dict) else None
+        if type(stamp) in (int, float) and math.isfinite(stamp) and stamp > 0:
+            self.last_successful_check_at = stamp
+            self.last_check_source = str(saved_check.get("source") or "")
         self.sync_error: str | None = None
         self.sync_progress: dict | None = None  # 下载统计数据时 {done, total}（字节）
         self.sync_every_s = SYNC_EVERY_S  # 多久查一次数据仓库；引擎按云控 update.data_minutes 改
@@ -506,39 +514,67 @@ class PublicStore(DataStore):
                               "text": "数据已更新：" + self._describe(self.dataset.manifest)}
             return True
 
+    def _has_pending_data(self) -> bool:
+        return any(dest.with_name(dest.name + "-pending").joinpath("latest.json").is_file()
+                   for dest in (self.downloaded, self.event_dir))
+
+    def _checked_remote(self, source: str, changed: bool) -> None:
+        """Record success only after a valid remote manifest/download was consumed."""
+        self.last_successful_check_at = time.time()
+        self.last_check_source = source
+        self.sync_error = None
+        self.sync_state = "staged" if self._has_pending_data() else "updated" if changed else "unchanged"
+        try:
+            path = self.root / "statistics-check.json"
+            path.parent.mkdir(parents=True, exist_ok=True)
+            tmp = path.with_suffix(".tmp")
+            tmp.write_text(json.dumps({"checked_at": self.last_successful_check_at, "source": source}), encoding="utf-8")
+            tmp.replace(path)
+        except OSError:
+            log.info("统计数据检查时间暂未保存")
+
     def sync_data(self, force: bool = False, manual: bool = False) -> bool:
-        """查数据仓库有没有更新的统计数据，有就下载并换上。下载了新数据返回 True。
-        manual=True：用户点了「检查更新」或同意了更新提示，绕过自动更新开关；选人/对局中仍推迟。
-        后台查时：正在对局就先不查（打完再查）；关了自动更新只看有没有新的，有就记到 data_offer 等用户点头。"""
-        # Manual refresh does not override the independent release's opt-in.
+        """Keep the bool activation API; sync_state reports what actually happened.
+
+        Default runtime sources always require opt-in, including manual checks.
+        In-game and already-running checks are deferred without claiming success.
+        """
         if self._default_sources and not self.check_updates:
+            self.sync_state = "disabled"
             return False
         if self.hold():
+            self.sync_state = "staged" if self._has_pending_data() else "deferred"
             log.debug("对局中，统计数据更新推迟到打完")
             return False
         if not self._sync_lock.acquire(blocking=False):
+            self.sync_state = "checking"
             return False
         try:
             changed_pending = self._activate_pending_data()
             if not force and time.time() - self._last_sync < self.sync_every_s:
+                if changed_pending:
+                    self.sync_state = "updated"
                 return changed_pending
             self._last_sync = time.time()
+            self.sync_state = "checking"
             if not self.check_updates and not manual:
                 self._look_for_offer()
+                self.sync_state = "offer" if self.data_offer else "disabled"
                 return changed_pending
             event = self._event_source()
             if event != self.event:
                 self.event = event
                 self.reload_dataset()
             errors, tried_tags = [], False
-            for base in self.base_urls:  # 一个地址连不上、或下载的文件校验不过，就换下一个
+            for base in self.base_urls:
                 if not tried_tags and self.tag_hosts and base != self.base_urls[0]:
-                    tried_tags = True  # GitHub 连不上了：先按 tag 试探 jsDelivr 上更新的数据
+                    tried_tags = True
                     tag_base = self._probe_tag()
                     if tag_base:
                         try:
                             changed = self._sync_from(tag_base)
-                            self.data_source, self.sync_error = tag_base, None
+                            self.data_source = tag_base
+                            self._checked_remote(tag_base, changed or changed_pending)
                             return changed or changed_pending
                         except Exception as e:
                             errors.append(f"{tag_base.split('/')[2]}（tag）：{e}")
@@ -548,17 +584,22 @@ class PublicStore(DataStore):
                     errors.append(f"{base.split('/')[2]}：{e}")
                     log.info("从 %s 检查统计数据更新失败：%s", base, e)
                     continue
-                self.data_source, self.sync_error = base, None
+                self.data_source = base
                 if self.event:
                     try:
                         changed = self._sync_event(base) or changed
                     except Exception as e:
                         log.info("活动数据下载失败：%s", e)
-                # 开头已经换上了暂存的新数据、远端又没有更新的：也算换了（手动检查不能说「已是最新」）
+                        self.sync_error, self.sync_state = f"活动数据检查失败：{e}", "failed"
+                        return changed or changed_pending
+                self._checked_remote(base, changed or changed_pending)
                 return changed or changed_pending
-            # 都连不上很常见：用手头的数据，不打扰用户
-            self.sync_error = "；".join(errors)[:300]
+            self.sync_error = "；".join(errors)[:300] or "没有配置可用的统计数据源"
+            self.sync_state = "failed"
             return changed_pending
+        except Exception as e:
+            self.sync_error, self.sync_state = str(e), "failed"
+            raise
         finally:
             self._sync_lock.release()
 
@@ -902,5 +943,7 @@ class PublicStore(DataStore):
                  dataset_mode_label=(ds.mode_label or ds.mode) if ds and ds.mode != "normal" else None,
                  event_label=(self.event or {}).get("label"), event_fallback=self.event_fallback,
                  data_updated_at=self.data_updated_at, sync_error=self.sync_error,
+                 data_check_state=("disabled" if self._default_sources and not self.check_updates else self.sync_state),
+                 data_last_checked_at=self.last_successful_check_at, data_check_source=self.last_check_source,
                  data_progress=self.sync_progress, data_note=self.data_note, data_offer=self.data_offer)
         return s

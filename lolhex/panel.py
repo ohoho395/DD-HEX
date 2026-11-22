@@ -30,6 +30,17 @@ def by_win(rows: list[dict], min_games: int = 0) -> list[dict]:
     return sorted(keep, key=lambda x: -x["win"])
 
 
+def split_augment_samples(rows: list[dict], reliable_games: int) -> tuple[list, list]:
+    """分开可推荐的海克斯与样本不足的参考项，各自按平滑分数排序。"""
+    scored = sorted((row for row in rows if row.get("delta") is not None),
+                    key=lambda row: -row["delta"])
+    qualified, provisional = [], []
+    for row in scored:
+        games = row.get("evidence_games") or row.get("games") or 0
+        (qualified if games >= reliable_games else provisional).append(row)
+    return qualified, provisional
+
+
 def hero_panel(store, hero_key, k: int = 300, *, allow_network: bool = True) -> dict | None:
     hid = store.resolve_hero(hero_key)
     if not hid:
@@ -39,6 +50,7 @@ def hero_panel(store, hero_key, k: int = 300, *, allow_network: bool = True) -> 
     ag_augs = ag.get("augments") or {}
     # 测试服数据的新海克斯：只显示测试服胜率，不算 Δ，不进「推荐海克斯」排行（不是同一个版本的数据）
     provisional = store.provisional_augments() if hasattr(store, "provisional_augments") else {}
+    excluded = store.excluded_augments() if hasattr(store, "excluded_augments") else {}
     blend = recommend.band_blend(store, hid, ag, k)  # 选了分段：Δ 和三选一一样按分段、全体综合
 
     augs = []
@@ -46,18 +58,21 @@ def hero_panel(store, hero_key, k: int = 300, *, allow_network: bool = True) -> 
         meta = store.augments.get(a["id"], {})
         x = ag_augs.get(a["id"]) or {}
         d = None
-        if a["id"] in provisional:
+        combined = (blend or {}).get(a["id"]) or {}
+        evidence_games = combined.get("games_all") or x.get("games") or 0
+        scope = "全段位" if combined.get("games_all") or not ag.get("band") else (ag.get("band_label") or "当前分段")
+        if a["id"] in provisional or a["id"] in excluded:
             pass
         elif blend is not None:
-            d = (blend.get(a["id"]) or {}).get("delta")
+            d = combined.get("delta")
         elif x.get("win") is not None and x.get("games") and ag.get("sample_win") is not None:
             d = recommend.smoothed_delta(x["win"], x["games"], ag["sample_win"], k)
         augs.append({**a, "name": meta.get("name", a["id"]), "icon": meta.get("icon"),
                      "desc": meta.get("desc"), "win": x.get("win"), "games": x.get("games"),
                      "source": ("pbe" if a["id"] in provisional else "public") if x else None,
                      "delta": None if d is None else round(d, 2),
-                     "sample": recommend.sample_level(((blend or {}).get(a["id"]) or {}).get("games_all")
-                                                      or x.get("games"))})
+                     "evidence_games": evidence_games, "evidence_scope": scope,
+                     "sample": recommend.sample_level(evidence_games)})
 
     items = store.items
 

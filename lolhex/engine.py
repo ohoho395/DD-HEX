@@ -392,13 +392,20 @@ class Engine:
     # ---------- 窗口状态与英雄识别 ----------
 
     def _observer_loop(self) -> None:
-        while not self._stop.is_set():
-            interval = 3.0
-            try:
-                interval = self._observe_once()
-            except Exception:
-                log.exception("状态读取异常")
-            self._stop.wait(interval)
+        from .vision import capture
+
+        try:
+            while not self._stop.is_set():
+                interval = 3.0
+                try:
+                    interval = self._observe_once()
+                except Exception:
+                    capture.release()
+                    log.exception("状态读取异常")
+                self._stop.wait(interval)
+        finally:
+            # MSS 属于截屏线程；Engine.stop() 的调用线程不能代它释放。
+            capture.release()
 
     def _observe_once(self) -> float:
         game = win.find_game_window()
@@ -412,12 +419,14 @@ class Engine:
         if phase != "client" and self.state["champ_select"]:
             self._set(champ_select=None)
 
-        if phase == "ingame":
-            return 2.0
         if phase == "client" and win.is_foreground(client):
             self._champ_select_scan(client)
             # 画面没变的位置直接复用上次结果，所以可以扫得很勤
             return (0.5 if self.state["champ_select"] else 1.0) * self.settings.speed_factor
+        from .vision import capture
+        capture.release()  # 客户端不再前台截屏时，不保留它上次的 GDI 位图。
+        if phase == "ingame":
+            return 2.0
         if phase == "client":
             return 1.0  # 客户端切到后台：只查窗口不截图，切回来 1 秒内恢复
         return 3.0
@@ -431,10 +440,12 @@ class Engine:
     def _champ_select_scan(self, hwnd: int) -> None:
         """截取客户端窗口：头像比对认出预选栏/我方英雄，OCR 认出自己的英雄名。
         只读屏幕像素，不读客户端进程。"""
+        from .vision import capture
+
         rect = win.client_rect(hwnd)
         if not rect:
+            capture.release()
             return
-        from .vision import capture
         img = capture.grab(rect)
         if capture.is_blank(img):
             return

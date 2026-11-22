@@ -4,6 +4,17 @@ on:
   push:
     tags: ['v[0-9]+.[0-9]+.[0-9]+']
   workflow_dispatch:
+    inputs:
+      portable_tag:
+        description: "校验已有便携版 Release tag（留空则常规构建；不发布）"
+        required: false
+        type: string
+        default: ""
+      portable_sha256:
+        description: "已有 Windows-x64 ZIP 的完整 SHA-256（便携版校验必填）"
+        required: false
+        type: string
+        default: ""
 
 permissions:
   contents: read
@@ -26,9 +37,95 @@ jobs:
       official: true
 
   test-windows:
-    if: github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch' && inputs.portable_tag == ''
     permissions:
       contents: read
     uses: ./.github/workflows/windows-package.yml
     with:
       official: false
+
+  validate-portable:
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.portable_tag != '' }}
+    runs-on: windows-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      PORTABLE_TAG: ${{ inputs.portable_tag }}
+      PORTABLE_SHA256: ${{ inputs.portable_sha256 }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v5
+      - name: 下载同仓库指定 ZIP 并核验精确哈希
+        run: |
+          if ($env:PORTABLE_TAG -notmatch '^v[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?$') { throw '请指定完整 Release tag' }
+          if ($env:PORTABLE_SHA256 -notmatch '^[0-9a-fA-F]{64}$') { throw '必须提供精确 ZIP SHA-256' }
+          New-Item -ItemType Directory -Force downloaded, validation | Out-Null
+          gh release download "$env:PORTABLE_TAG" --repo "$env:GITHUB_REPOSITORY" --pattern 'DD-HEX-*-Windows-x64.zip' --dir downloaded
+          if ($LASTEXITCODE) { throw '无法下载便携版 ZIP（只读）' }
+          $files = @(Get-ChildItem downloaded -Filter '*.zip')
+          if ($files.Count -ne 1) { throw '该 Release 必须恰有一份 Windows-x64 ZIP' }
+          $sha = (Get-FileHash $files[0].FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($sha -ne $env:PORTABLE_SHA256.ToLowerInvariant()) { throw "ZIP SHA-256 不一致：$sha" }
+          "$sha  $($files[0].Name)" | Set-Content validation/ZIP-SHA256.txt -Encoding ascii
+          Expand-Archive -LiteralPath $files[0].FullName -DestinationPath extracted
+          $root = (Resolve-Path 'extracted/DD HEX').Path
+          "PORTABLE_ROOT=$root" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          $info = Get-Content -Raw -Encoding UTF8 (Join-Path $root 'build-info.json') | ConvertFrom-Json
+          if ($info.source_commit -ne $env:GITHUB_SHA) { throw 'ZIP 源码提交与工作流 checkout 提交不一致' }
+      - name: 实际启动 ZIP 中 EXE，检查原生 Windows Qt 与 OCR
+        timeout-minutes: 5
+        run: |
+          $env:QT_QPA_PLATFORM = 'windows'
+          $env:DDHEX_HOME = Join-Path $env:RUNNER_TEMP 'ddhex-exe-smoke'
+          $report = Join-Path $env:GITHUB_WORKSPACE 'validation/gui-self-test.json'
+          $exe = Join-Path $env:PORTABLE_ROOT 'DD HEX.exe'
+          $process = Start-Process -FilePath $exe -WorkingDirectory $env:PORTABLE_ROOT -ArgumentList @('--self-test-gui', ('"' + $report + '"')) -PassThru
+          if (-not $process.WaitForExit(180000)) { $process.Kill(); throw '便携版 EXE 自检超时' }
+          if ($process.ExitCode -ne 0 -or -not (Test-Path $report)) { throw 'EXE 未成功生成自检报告' }
+          $gui = Get-Content -Raw -Encoding UTF8 $report | ConvertFrom-Json
+          if (-not $gui.success -or -not $gui.ocr_ok -or -not $gui.gui_ok -or $gui.platform -ne 'windows') { throw '实际 ZIP 的 Qt/OCR 自检失败' }
+          $expectedVersion = $env:PORTABLE_TAG.Substring(1)
+          if ($gui.version -ne $expectedVersion) { throw 'EXE 启动版本与目标 tag 不一致' }
+      - name: 使用随包 Python 检查文件、提莫无样本演示与真实推荐面板
+        run: |
+          $env:QT_QPA_PLATFORM = 'offscreen'
+          Push-Location $env:PORTABLE_ROOT
+          try {
+            & '.\runtime\python.exe' '.\Portable-Validate.py' --skip-gui --report (Join-Path $env:GITHUB_WORKSPACE 'validation/portable-smoke.json')
+            if ($LASTEXITCODE) { throw '实际 ZIP 的文件/演示/推荐面板回归失败' }
+          } finally { Pop-Location }
+      - name: 对随包源码运行针对性回归
+        run: |
+          $env:QT_QPA_PLATFORM = 'offscreen'
+          # Fixtures resolve their ROOT to the extracted application, not checkout.
+          Copy-Item -Recurse -LiteralPath tests -Destination $env:PORTABLE_ROOT
+          Push-Location $env:PORTABLE_ROOT
+          try {
+            $junit = Join-Path $env:GITHUB_WORKSPACE 'validation/regressions.xml'
+            $junitPath = Join-Path $env:GITHUB_WORKSPACE 'validation/regressions.xml'
+            $cases = @(
+              'tests/test_recommend.py',
+              'tests/test_hero_sample_ranking.py',
+              'tests/test_desktop_item_table.py',
+              'tests/test_ddhex_ui.py::test_toolbar_navigation_and_programmatic_tab_changes_stay_in_sync',
+              'tests/test_observer_capture_lifecycle.py',
+              'tests/test_statistics_update_status.py',
+              'tests/test_ddhex_ui.py::test_reliable_threshold_repaints_hero_page_without_switching_hero'
+            )
+            & '.\runtime\python.exe' -m pytest -q @cases "--junitxml=$junitPath" 2>&1 | Tee-Object (Join-Path $env:GITHUB_WORKSPACE 'validation/regressions.log')
+            if ($LASTEXITCODE) { throw '随包源码回归失败' }
+          } finally { Pop-Location }
+      - name: 将校验信息写入运行摘要
+        if: always()
+        run: |
+          foreach ($name in @('ZIP-SHA256.txt', 'gui-self-test.json', 'regressions.log')) {
+            $file = Join-Path 'validation' $name
+            if (Test-Path $file) {
+              "### $name" | Out-File $env:GITHUB_STEP_SUMMARY -Append
+              '~~~' | Out-File $env:GITHUB_STEP_SUMMARY -Append
+              Get-Content $file -Tail 30 | Out-File $env:GITHUB_STEP_SUMMARY -Append
+              '~~~' | Out-File $env:GITHUB_STEP_SUMMARY -Append
+            }
+          }
