@@ -1,6 +1,6 @@
 # Windows 10/11 安装、运行与 EXE 打包
 
-适用 DD HEX 0.1.6 正式版，目标为 Windows 10/11 x64。普通用户可在 [GitHub Releases](https://github.com/ohoho395/DD-HEX/releases/tag/v0.1.6) 下载安装包或便携 ZIP。便携包请完整解压（包括 _internal），再双击 DD HEX.exe。两种分发都包含运行时和 OCR 模型。以下 Python 安装步骤供源码开发使用。
+适用 DD HEX 0.1.7 正式版，目标为 Windows 10/11 x64。普通用户可在 [GitHub Releases](https://github.com/ohoho395/DD-HEX/releases/tag/v0.1.7) 下载安装包或便携 ZIP。便携包请完整解压（包括 _internal），再双击 DD HEX.exe。两种分发都包含运行时和 OCR 模型。以下 Python 安装步骤供源码开发使用。
 
 ## 1. 安装依赖
 
@@ -89,7 +89,7 @@ Remove-Item Env:\QT_QPA_PLATFORM -ErrorAction SilentlyContinue
 pwsh -NoProfile -File packaging\build.ps1 -PortableOnly
 ```
 
-输出：`build\release\DDHEX-Portable-0.1.6.zip`、`SHA256SUMS.txt`。解压整个文件夹，运行 `DD HEX.exe`。必须保留 `_internal`、OCR 模型、Qt 动态库、证书和许可证文件；不能只复制 EXE。目标机器无需另装 Python。
+输出：`build\release\DDHEX-Portable-0.1.7.zip`、`SHA256SUMS.txt`。解压整个文件夹，运行 `DD HEX.exe`。必须保留 `_internal`、OCR 模型、Qt 动态库、证书和许可证文件；不能只复制 EXE。目标机器无需另装 Python。
 
 ## 7. 打包安装版
 
@@ -100,7 +100,7 @@ winget install --id JRSoftware.InnoSetup -e
 pwsh -NoProfile -File packaging\build.ps1
 ```
 
-若未自动找到编译器，用 `-InnoCompiler "C:\实际路径\ISCC.exe"`。脚本输出 `DDHEX-Setup-0.1.6.exe`、便携版 ZIP 和校验和。默认安装到当前用户 `%LOCALAPPDATA%\Programs\DD HEX`，独立 GUID，不覆盖 AramHex。
+若未自动找到编译器，用 `-InnoCompiler "C:\实际路径\ISCC.exe"`。脚本输出 `DDHEX-Setup-0.1.7.exe`、便携版 ZIP 和校验和。默认安装到当前用户 `%LOCALAPPDATA%\Programs\DD HEX`，独立 GUID，不覆盖 AramHex。
 
 构建过程检查内置资料、收集已安装组件许可证、构建 PyInstaller onedir，随后运行真实 Windows Qt/OpenCV/OCR 自检。自检失败或超时会停止，不生成发布安装包。检查 `build\gui-smoke.json` 的 `success`、`platform=windows`、`ocr_ok`、版本号。自检并不验证真实游戏、DPI、多屏、杀毒行为或更新回滚。
 
