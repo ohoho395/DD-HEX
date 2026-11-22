@@ -20,32 +20,35 @@ class BadgePosPreview(QWidget):
         self.update()
 
     def paintEvent(self, _):
+        # Load lazily: settings imports this widget before overlay startup.
+        from .overlay import TAG_BORDER, TAG_EMPHASIS, TAG_MUTED, TAG_SURFACE, TAG_TEXT
+
         p = QPainter(self)
         p.setRenderHint(QPainter.Antialiasing)
         card = QRectF(6, 4, 100, 142)
-        p.setPen(QPen(QColor(214, 180, 120), 3))
-        p.setBrush(QColor(16, 30, 34))
+        p.setPen(QPen(QColor(116, 116, 116), 2))
+        p.setBrush(QColor(26, 26, 26))
         p.drawRoundedRect(card, 8, 8)
-        p.setPen(QPen(QColor(120, 130, 130), 2))
+        p.setPen(QPen(QColor(132, 132, 132), 2))
         p.setBrush(Qt.NoBrush)
         p.drawEllipse(QRectF(36, 18, 40, 40))           # 海克斯图标
         p.setPen(Qt.NoPen)
-        p.setBrush(QColor(235, 235, 235))
+        p.setBrush(TAG_TEXT)
         p.drawRect(QRectF(30, 66, 52, 6))                # 名字
-        p.setBrush(QColor(110, 118, 124))
+        p.setBrush(TAG_MUTED)
         for i, w in enumerate((76, 70, 56)):             # 描述
             p.drawRect(QRectF(56 - w / 2, 80 + 8 * i, w, 3))
         box = QRectF(20, 40, 72, 22) if self.position != "bottom" else QRectF(20, 110, 72, 22)
-        p.setBrush(QColor(10, 12, 16, 225))
-        p.setPen(QPen(QColor(70, 89, 85), 1))
+        p.setBrush(TAG_SURFACE)
+        p.setPen(QPen(TAG_BORDER, 1))
         p.drawRoundedRect(box, 4, 4)
         p.setPen(Qt.NoPen)
-        p.setBrush(QColor(95, 211, 141))
+        p.setBrush(TAG_EMPHASIS)
         p.drawRoundedRect(QRectF(box.left()+3, box.top()+5, 2, 12), 1, 1)
         f = QFont("Microsoft YaHei UI")
         f.setPixelSize(11)
         f.setBold(True)
         p.setFont(f)
-        p.setPen(QColor(95, 211, 141))
+        p.setPen(TAG_EMPHASIS)
         p.drawText(box, Qt.AlignCenter, "首选  58%")
         p.end()

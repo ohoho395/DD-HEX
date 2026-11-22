@@ -4,9 +4,9 @@ from html import escape
 from ..panel import split_augment_samples
 from . import buildview
 
-INK = "#F2F4F0"
-MUTED = "#B5C3C0"
-ACCENT = "#A5DBBF"
+INK = "#e9e9e9"
+MUTED = "#b7b7b7"
+ACCENT = "#f5f5f5"
 
 
 def _text(value, color=INK, size=13, bold=False):

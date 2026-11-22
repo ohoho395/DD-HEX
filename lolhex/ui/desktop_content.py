@@ -6,9 +6,9 @@ from ..panel import split_augment_samples
 from ..data.tencent import RARITY_CN
 
 
-INK = "#253630"
-MUTED = "#57695f"
-ACCENT = "#256951"
+INK = "#e7e7e7"
+MUTED = "#b3b3b3"
+ACCENT = "#f2f2f2"
 
 
 def _text(value, *, size=14, color=INK, bold=False):
@@ -33,11 +33,11 @@ def _table(headings, rows, numeric=(), *, compact=False):
     def row(cells, header=False):
         out = []
         for i, cell in enumerate(cells):
-            fill = " bgcolor='#eef0ea'" if header else ""
+            fill = " bgcolor='#272727'" if header else ""
             align = "right" if i in numeric else "left"
             content = _text(cell, size=12, color=MUTED, bold=True) if header else cell
             out.append(f"<td valign='middle' align='{align}'{fill} "
-                       f"style='border-bottom:1px solid #d9ded7'>{content}</td>")
+                       f"style='border-bottom:1px solid #393939'>{content}</td>")
         return "<tr>" + "".join(out) + "</tr>"
 
     return (f"<table width='100%' cellspacing='0' cellpadding='{pad}' style='border-collapse:collapse'>"
@@ -182,7 +182,7 @@ def offer_html(row, show_win):
     if row.get("games") is not None:
         lines.append(_text(f"样本 {row['games']:,} 局", color=MUTED))
     if row.get("thin") or row.get("sample_warning"):
-        lines.append(_text("样本太少" if row.get("thin") == "too_few" else "样本偏少", color="#835b24"))
+        lines.append(_text("样本太少" if row.get("thin") == "too_few" else "样本偏少", color="#d7d7d7"))
     if verdict == "nodata":
         note = {"excluded": recommend.NODATA_NOTE, "new": recommend.NEW_NOTE,
                 "rare": "本英雄暂无可靠样本", "tier_only": "仅有官方评级，暂无胜率样本"}.get(

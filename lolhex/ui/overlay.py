@@ -36,9 +36,18 @@ from .hotkey import GameHotkey
 log = logging.getLogger(__name__)
 
 RARITY_CN = {"silver": "白银", "gold": "黄金", "prismatic": "棱彩"}
-VERDICT = {"best": ("首选", QColor(95, 211, 141)), "ok": ("可选", QColor(214, 221, 226)),
-           "reroll": ("可刷新", QColor(220, 213, 197)), "unknown": ("未知", QColor(177, 183, 191)),
-           "nodata": ("无数据", QColor(177, 183, 191))}
+# Annotation chrome stays neutral; game rarity labels and original item icons
+# carry their own semantics. Verdict words, ranks and +/- values remain explicit.
+TAG_SURFACE = QColor(22, 22, 22, 232)
+TAG_BEST_SURFACE = QColor(29, 29, 29, 246)
+TAG_BORDER = QColor(104, 104, 104, 120)
+TAG_TEXT = QColor(238, 238, 238)
+TAG_MUTED = QColor(184, 184, 184)
+TAG_EMPHASIS = QColor(240, 240, 240)
+TAG_NOTE = QColor(160, 160, 160)
+VERDICT = {"best": ("首选", TAG_EMPHASIS), "ok": ("可选", TAG_TEXT),
+           "reroll": ("可刷新", TAG_MUTED), "unknown": ("未知", TAG_NOTE),
+           "nodata": ("无数据", TAG_NOTE)}
 # 某张卡没认出的前几秒写「识别中」：多是三选一刚弹出、卡还在翻，字没读全，1–2 秒内就能认出（1.1.4）。
 # 过了这个时间还认不出（新卡、被挡住）才写「未知」
 READING_S = 2.0
@@ -113,7 +122,7 @@ def hint_title(hint) -> str:
     return f"{HINT_TITLE} · {band}" if band else HINT_TITLE
 
 
-HINT_BG = QColor(16, 20, 28, 170)  # 半透明：只是浮在卡片空白处，不当遮罩用
+HINT_BG = QColor(22, 22, 22, 170)  # 半透明：只是浮在卡片空白处，不当遮罩用
 
 
 class _Layer(QWidget):
@@ -384,8 +393,8 @@ class BadgeLayer(_Layer):
         for r, label, color, lines, rect, hr, cx, y0, yc in self._badge_layout(snap):
             drawn.append(rect)
             best = r["verdict"] == "best"
-            p.setPen(QPen(QColor(193, 208, 218, 48), 1))
-            p.setBrush(QColor(15, 36, 32, 246) if best else QColor(20, 24, 31, 232))
+            p.setPen(QPen(TAG_BORDER, 1))
+            p.setBrush(TAG_BEST_SURFACE if best else TAG_SURFACE)
             p.drawRoundedRect(rect.adjusted(1, 1, -1, -1), 7, 7)
             if best:
                 p.setPen(Qt.NoPen)
@@ -397,9 +406,9 @@ class BadgeLayer(_Layer):
             p.drawText(head, Qt.AlignLeft | Qt.AlignVCenter, label)
             p.setFont(detail_font)
             if lines[0]:
-                p.setPen(QColor(238, 241, 239))
+                p.setPen(TAG_TEXT)
                 p.drawText(head, Qt.AlignRight | Qt.AlignVCenter, lines[0])
-            p.setPen(QColor(191, 200, 202))
+            p.setPen(TAG_MUTED)
             for index, detail in enumerate(lines[1:]):
                 row = QRect(head.x(), rect.y() + 26 + 20 * index, head.width(), 20)
                 p.drawText(row, Qt.AlignLeft | Qt.AlignVCenter, detail)
@@ -458,11 +467,11 @@ class BadgeLayer(_Layer):
         p.drawRoundedRect(rect, 6, 6)
         rows = hint["items"][:3]
         if not rows:
-            p.setPen(QColor(170, 176, 190))
+            p.setPen(TAG_MUTED)
             p.drawText(rect, Qt.AlignCenter, hint.get("note") or "")
             return
         x, width = rect.x() + HINT_PAD, rect.width() - 2 * HINT_PAD
-        p.setPen(QColor(231, 195, 90))
+        p.setPen(TAG_EMPHASIS)
         p.drawText(QRect(x, rect.y() + 4, width, 18), Qt.AlignLeft, hint_title(hint))
         row_h = min(HINT_ROW_H, (rect.height() - HINT_HEAD_H - 4) // len(rows))
         for i, row in enumerate(rows):
@@ -477,31 +486,30 @@ class BadgeLayer(_Layer):
             stat = self._item_hint_stat(row, hint, show_win)
             # Qt may round glyph advances differently when eliding on high DPI.
             stat_w = min(fm.horizontalAdvance(stat) + 2, text_w)
-            p.setPen(QColor(240, 240, 245))
+            p.setPen(TAG_TEXT)
             name_w = max(0, text_w - stat_w - 12)
             p.drawText(QRect(text_x, y + 2, name_w, 18), Qt.AlignLeft,
                        fm.elidedText(row["name"], Qt.ElideRight, name_w))
             delta = row.get("delta") if show_win else None
-            p.setPen(QColor(190, 196, 208) if delta is None or round(delta, 1) == 0
-                     else QColor(95, 211, 141) if delta > 0 else QColor(255, 122, 107))
+            p.setPen(TAG_MUTED if delta is None or round(delta, 1) == 0 else TAG_TEXT)
             p.drawText(QRect(x + width - stat_w, y + 2, stat_w, 18), Qt.AlignRight,
                        fm.elidedText(stat, Qt.ElideRight, stat_w))
 
 
-GRADE_COLOR = {"S": QColor(240, 200, 90), "A": QColor(95, 211, 141), "B": QColor(98, 168, 255),
-               "C": QColor(200, 204, 214), "D": QColor(255, 122, 107)}
+GRADE_COLOR = {"S": TAG_EMPHASIS, "A": QColor(224, 224, 224), "B": QColor(208, 208, 208),
+               "C": QColor(192, 192, 192), "D": TAG_MUTED}
 
 
 def win_color(win) -> QColor:
     if win is None:
-        return QColor(150, 150, 150)
+        return TAG_NOTE
     if win >= 0.53:
-        return QColor(95, 211, 141)
+        return TAG_EMPHASIS
     if win >= 0.50:
-        return QColor(98, 168, 255)
+        return TAG_TEXT
     if win >= 0.48:
-        return QColor(225, 228, 235)
-    return QColor(255, 122, 107)
+        return QColor(208, 208, 208)
+    return TAG_MUTED
 
 
 def champ_select_summary(cs: dict, show_win: bool = True) -> str:
@@ -515,7 +523,7 @@ def champ_select_summary(cs: dict, show_win: bool = True) -> str:
         if show_win and b.get("win") is not None:
             txt += f" {_pct(b['win'])}"
         if my_win is not None and b.get("win") is not None and b["win"] > my_win:
-            txt = f"<b style='color:#5fd38d'>{txt} ↑{(b['win'] - my_win) * 100:.1f}</b>"
+            txt = f"<b style='color:{TAG_EMPHASIS.name()}'>{txt} ↑{(b['win'] - my_win) * 100:.1f}</b>"
         items.append(txt)
     if cs.get("cards"):
         cards = sorted(cs["cards"], key=lambda c: -(c.get("win") or 0))
@@ -530,7 +538,7 @@ def champ_select_summary(cs: dict, show_win: bool = True) -> str:
 
 class ChampSelectLayer(_Layer):
     """选英雄界面：在预选栏和我方每个英雄头像旁标评级（国服排名换算 S–D）与胜率；
-    预选栏里胜率比自己当前英雄高的标绿，最高的那个加金框（值得换）。
+    预选栏里胜率比自己当前英雄高的突出显示，最高的那个加银色框（值得换）。
     覆盖客户端窗口，对鼠标完全透明，不挡点击。"""
 
     name = "选英雄标注"
@@ -567,7 +575,7 @@ class ChampSelectLayer(_Layer):
         my_win = (mine or {}).get("win")
         better = [b for b in bench if b.get("win") is not None and my_win is not None and b["win"] > my_win]
         best = max(better, key=lambda b: b["win"]) if better else None
-        # 开局英雄卡：胜率最高的那张加金框
+        # 开局英雄卡：胜率最高的那张加银色框
         cards = [c for c in cs.get("cards") or [] if c.get("win") is not None]
         best_card = max(cards, key=lambda c: c["win"]) if len(cards) >= 2 else None
         ox, oy = self.origin.x(), self.origin.y()
@@ -587,7 +595,7 @@ class ChampSelectLayer(_Layer):
                 win_txt = _pct(win) if self.show_win else ""
                 grade = s.get("grade") or ""
                 if kind == "bench":
-                    color = QColor(95, 211, 141) if s in better else QColor(215, 218, 226)
+                    color = TAG_EMPHASIS if s in better else TAG_TEXT
                     r = QRect(int(x0 - 4), int(y1 + 2), int(pw + 8), int(px * 1.45))
                 elif kind == "cards":  # 卡片正下方
                     color = win_color(win)
@@ -596,17 +604,16 @@ class ChampSelectLayer(_Layer):
                     color = win_color(win)
                     r = QRect(int(x1 + pw * 1.9), int((y0 + y1) / 2 - px * 1.5), int(pw * 1.2), int(px * 3.0))
                 p.setPen(Qt.NoPen)
-                p.setBrush(QColor(10, 12, 16, 225))
+                p.setBrush(TAG_SURFACE)
                 p.drawRoundedRect(r, 4, 4)
                 drawn.append(r)
                 if s is best or s is best_card:
-                    gold = QPen(QColor(240, 200, 90), 2)
-                    p.setPen(gold)
+                    p.setPen(QPen(TAG_EMPHASIS, 2))
                     p.setBrush(Qt.NoBrush)
                     p.drawRoundedRect(r.adjusted(1, 1, -1, -1), 4, 4)
                     frame = QRect(int(x0) - 2, int(y0) - 2, int(pw) + 4, int(y1 - y0) + 4)
                     p.drawRect(frame)
-                    # 金框只登记四条边（中间是头像，识别要看）
+                    # 推荐框只登记四条边（中间是头像，识别要看）
                     drawn += [QRect(frame.x(), frame.y(), frame.width(), 2), QRect(frame.x(), frame.bottom() - 1, frame.width(), 2),
                               QRect(frame.x(), frame.y(), 2, frame.height()), QRect(frame.right() - 1, frame.y(), 2, frame.height())]
                 line = QRect(r.x(), r.y() + (int(px * 0.15) if kind != "bench" else 0), r.width(), int(px * 1.45))
@@ -617,7 +624,7 @@ class ChampSelectLayer(_Layer):
                 x = line.x() + (line.width() - tw) / 2
                 p.setFont(big)
                 if grade:
-                    p.setPen(GRADE_COLOR.get(grade, QColor(200, 200, 200)))
+                    p.setPen(GRADE_COLOR.get(grade, TAG_MUTED))
                     p.drawText(QRect(int(x), line.y(), fm_w.horizontalAdvance(grade) + 2, line.height()),
                                Qt.AlignVCenter | Qt.AlignLeft, grade)
                     x += fm_w.horizontalAdvance(grade) + gap
@@ -629,13 +636,13 @@ class ChampSelectLayer(_Layer):
                     is_me = s["hero_id"] == cs.get("mine")
                     sub = f"第{s['rank']}/{s.get('total') or '?'}" if s.get("rank") else ""
                     p.setFont(small)
-                    p.setPen(QColor(240, 200, 90) if is_me else QColor(170, 176, 190))
+                    p.setPen(TAG_EMPHASIS if is_me else TAG_MUTED)
                     p.drawText(QRect(r.x(), line.bottom(), r.width(), r.bottom() - line.bottom()),
                                Qt.AlignHCenter | Qt.AlignTop, ("我 · " if is_me else "") + sub)
                 elif kind == "cards":
                     sub = f"胜率第{s['rank']}/{s.get('total') or '?'}" if s.get("rank") else ""
                     p.setFont(small)
-                    p.setPen(QColor(240, 200, 90) if s is best_card else QColor(170, 176, 190))
+                    p.setPen(TAG_EMPHASIS if s is best_card else TAG_MUTED)
                     p.drawText(QRect(r.x(), line.bottom(), r.width(), r.bottom() - line.bottom()),
                                Qt.AlignHCenter | Qt.AlignTop, "★ 推荐" if s is best_card else sub)
         p.end()
@@ -665,21 +672,20 @@ class ControlPanel(QWidget):
     现在图标窗口大小、位置都不因展开收起而变，详情窗口贴在图标下面单独显示、隐藏。"""
 
     STYLE_BODY = """
-        QWidget#body {background:rgba(24,34,37,247);border:1px solid #54655e;border-radius:11px;}
-        QLabel {color:#eff4ef;background:transparent;font:13px 'Microsoft YaHei UI';}
-        QFrame#champHeader {background:qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 #dceae0,stop:.65 #e8ebe4,stop:1 #efe9dd);
-            border:1px solid #edf2e9;border-radius:7px;}
-        QLabel#headerIdentity,QLabel#headerMetric {color:#20372c;}
-        QPushButton {background:transparent;color:#ccd7d0;border:1px solid transparent;border-radius:4px;padding:3px 6px;}
-        QPushButton:hover {background:#32413e;color:#fff;}
-        QPushButton#pageTab {font-weight:600;color:#aebdb7;padding:4px 9px;border-radius:0;border-bottom:2px solid transparent;}
-        QPushButton#pageTab:checked {color:#e3f4e8;border-bottom:2px solid #a5dbbf;}
-        QLabel#source {font-size:11px;color:#aab9b2;}
-        QFrame#footer {border:none;border-top:1px solid #43504c;}
-        QLineEdit {background:#101a1c;color:#eef2ef;border:1px solid #65766e;border-radius:4px;padding:4px 6px;}
+        QWidget#body {background:rgba(23,23,23,250);border:1px solid #515151;border-radius:11px;}
+        QLabel {color:#e9e9e9;background:transparent;font:13px 'Microsoft YaHei UI';}
+        QLabel#headerIdentity,QLabel#headerMetric {color:#f5f5f5;}
+        QPushButton {background:transparent;color:#c8c8c8;border:1px solid transparent;border-radius:4px;padding:3px 6px;}
+        QPushButton:hover {background:#343434;color:#fff;}
+        QPushButton:focus,QLineEdit:focus {border-color:#bcbcbc;}
+        QPushButton#pageTab {font-weight:600;color:#ababab;padding:4px 9px;border-radius:0;border-bottom:2px solid transparent;}
+        QPushButton#pageTab:checked {color:#f4f4f4;border-bottom:2px solid #d5d5d5;}
+        QLabel#source {font-size:11px;color:#b0b0b0;}
+        QFrame#footer {border:none;border-top:1px solid #424242;}
+        QLineEdit {background:#101010;color:#ededed;border:1px solid #626262;border-radius:4px;padding:4px 6px;}
         QScrollArea {border:none;background:transparent;}
         QScrollBar:vertical {background:transparent;width:7px;}
-        QScrollBar::handle:vertical {background:#687872;border-radius:3px;min-height:18px;}
+        QScrollBar::handle:vertical {background:#656565;border-radius:3px;min-height:18px;}
         QScrollBar::add-line:vertical,QScrollBar::sub-line:vertical {height:0;}
         QScrollBar::add-page:vertical,QScrollBar::sub-page:vertical {background:transparent;}
     """
@@ -738,10 +744,10 @@ class ControlPanel(QWidget):
         bl.setContentsMargins(10, 10, 10, 6)
         bl.setSpacing(6)
         # 英雄：识别结果 / 候选 / 搜索手动选
-        header = QFrame()
+        header = desktop_style.GlassToolbar()
         header.setObjectName("champHeader")
         head = QHBoxLayout(header)
-        head.setContentsMargins(10, 8, 10, 8)
+        head.setContentsMargins(13, 9, 13, 9)
         head.setSpacing(9)
         self.portrait = QLabel()
         self.portrait.setFixedSize(38, 38)
@@ -772,7 +778,7 @@ class ControlPanel(QWidget):
         search_row.addWidget(self.confirm_hero)
         self.search_feedback = QLabel("未找到英雄，请输入英雄名或从候选项选择")
         self.search_feedback.setWordWrap(True)
-        self.search_feedback.setStyleSheet("color:#e7c35a")
+        self.search_feedback.setStyleSheet("color:#ececec;font-weight:600")
         self.search_feedback.hide()
         self.info = QLabel()
         self.info.setTextFormat(Qt.RichText)
@@ -1247,7 +1253,7 @@ class ControlPanel(QWidget):
             if r.get("pick") is not None:
                 rating.append(f"出场 {_pct(r['pick'])}")
             hero_html = (f"<b style='font-size:18px'>{escape(h['name'])}</b>　{escape(h['nick'])}<br>"
-                         f"<span style='font-size:11px;color:#4a6255'>{' · '.join(rating)}</span>")
+                         f"<span style='font-size:11px;color:#c7c7c7'>{' · '.join(rating)}</span>")
             metric = (f"<b style='font-size:19px'>{_pct(r['win'])}</b><br>英雄胜率"
                       if show_win and r.get("win") is not None else "")
             alias = h.get("alias") or ""
@@ -1278,7 +1284,7 @@ class ControlPanel(QWidget):
             parts.append(f"<b>{advice}</b>")
             pk = recommend.pentakill_text(ev.get("pentakill"), show_win=show_win) if not waiting else ""
             if pk:
-                parts.append(f"<span style='color:#c9a0ff'>{escape(pk)}</span>")
+                parts.append(f"<span style='color:#d9d9d9'>{escape(pk)}</span>")
         limit = getattr(self.engine.settings, "reliable_games", recommend.RELIABLE_GAMES)
         key = self._view, show_win, limit, getattr(self.engine.icons, "version", 0)
         if self._cached_panel is not d or self._detail_key != key:
@@ -1286,7 +1292,7 @@ class ControlPanel(QWidget):
             self._cached_panel, self._detail_key = d, key
         parts.append(self._details)
         if snap.get("vision", {}).get("blank"):
-            parts.append("<span style='color:#ff7a6b'>游戏可能是全屏模式，无法识别。请在游戏内设置-窗口模式中选择无边框/窗口。</span>")
+            parts.append("<span style='color:#ededed;font-weight:600'>游戏可能是全屏模式，无法识别。请在游戏内设置-窗口模式中选择无边框/窗口。</span>")
         status = data_status_html(snap.get("data", {}))
         if self.source.text() != status:
             self.source.setText(status)
@@ -1419,8 +1425,8 @@ def run(make_engine, minimized: bool = False) -> int:
         import ctypes
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("DDHEX.Desktop")
     app.setWindowIcon(app_icon())
-    # 界面颜色是按浅色配的（卡片底色、灰字写死）：不跟随 Windows 深色模式，否则白字压在浅色卡片上看不见
-    app.styleHints().setColorScheme(Qt.ColorScheme.Light)
+    # Match native popups, menus and dialogs to the desktop and game panels.
+    desktop_style.apply_app_palette(app)
 
     name = f"{SINGLE_INSTANCE}-{getpass.getuser()}"
 

@@ -10,7 +10,7 @@ import pytest
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 QtWidgets = pytest.importorskip("PySide6.QtWidgets")
-from PySide6.QtGui import QColor, QImage  # noqa: E402
+from PySide6.QtGui import QImage  # noqa: E402
 
 from lolhex.vision.window import Rect  # noqa: E402
 
@@ -31,7 +31,7 @@ def _wait(ms: int) -> None:
 
 
 def _badge_rows(position: str, monkeypatch, desc_to: int = 560, wait_ms: int = 800) -> list[int]:
-    """1920x1080 游戏、一张卡标题在 y=430..470、描述文字写到 desc_to：画出来的标签（绿边）出现在哪几行。"""
+    """1920x1080 游戏、一张卡标题在 y=430..470、描述文字写到 desc_to：画出来的标签（首选强调色）出现在哪几行。"""
     import numpy as np
 
     from lolhex.ui import overlay
@@ -51,8 +51,8 @@ def _badge_rows(position: str, monkeypatch, desc_to: int = 560, wait_ms: int = 8
     img = QImage(1920, 1080, QImage.Format_ARGB32)
     img.fill(0)
     render_in_game(layer, img)
-    green = QColor(95, 211, 141).rgb()
-    return [y for y in range(0, 1080, 2) if any(img.pixel(x, y) == green for x in range(760, 940, 3))]
+    emphasis = overlay.VERDICT["best"][1].rgb()
+    return [y for y in range(0, 1080, 2) if any(img.pixel(x, y) == emphasis for x in range(760, 940, 3))]
 
 
 def test_badge_top_and_bottom(monkeypatch):
@@ -141,23 +141,23 @@ def test_reroll_keeps_bottom_badges(monkeypatch):
                 "evaluation": {"slots": [{"index": 0, "verdict": "best", "score": 2.0},
                                          {"index": 1, "verdict": "ok", "score": 1.0}]}}
 
-    def green_rows():
+    def emphasis_rows():
         img = QImage(1920, 1080, QImage.Format_ARGB32)
         img.fill(0)
         render_in_game(layer, img)
-        green = QColor(95, 211, 141).rgb()
-        return [y for y in range(0, 1080, 2) if any(img.pixel(x, y) == green for x in range(760, 940, 3))]
+        emphasis = overlay.VERDICT["best"][1].rgb()
+        return [y for y in range(0, 1080, 2) if any(img.pixel(x, y) == emphasis for x in range(760, 940, 3))]
 
     layer.update_from(snap(["1", "2", None]), Rect(0, 0, 1920, 1080))
     app.processEvents()
-    before = green_rows()
+    before = emphasis_rows()
     assert before and min(before) > 560
     for slots in (["1", None, None], ["1", "3", None]):  # 刷新中间那张：先读不出，再读出新的
         layer.update_from(snap(slots), Rect(0, 0, 1920, 1080))
         app.processEvents()
-        assert green_rows() == before                 # 一直在原位，没有消失
+        assert emphasis_rows() == before                 # 一直在原位，没有消失
     _wait(1500)
-    assert green_rows() == before                     # 过一会儿也不跳
+    assert emphasis_rows() == before                     # 过一会儿也不跳
 
 
 def test_label_width_tracks_content_and_not_the_ocr_box():

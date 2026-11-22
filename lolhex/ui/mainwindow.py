@@ -17,7 +17,7 @@ from importlib import resources
 
 from PySide6.QtCore import QSize, Qt, QThread, QTimer, Signal
 from PySide6.QtGui import QAction, QIcon, QKeySequence, QPixmap
-from PySide6.QtWidgets import (QApplication, QButtonGroup, QCheckBox, QComboBox, QFrame, QGridLayout,
+from PySide6.QtWidgets import (QApplication, QButtonGroup, QComboBox, QFrame, QGridLayout,
                                QHBoxLayout, QKeySequenceEdit, QLabel, QLineEdit, QMainWindow, QMenu, QMessageBox, QProgressBar, QScrollArea,
                                QPushButton, QSizePolicy, QSpinBox, QSystemTrayIcon, QTabWidget, QVBoxLayout, QWidget)
 
@@ -197,8 +197,8 @@ BAND_CHOICES = [("", "全体")] + [(c, BANDS[c]) for c in BANDS]
 
 
 def about_html() -> str:
-    links = ["<a style='color:#256951' href='https://github.com/czgreat/aramhex'>原项目</a>",
-             f"<a style='color:#256951' href='{DATA_HOMEPAGE}'>统计来源</a>（非商业使用）"]
+    links = ["<a style='color:#dedede' href='https://github.com/czgreat/aramhex'>原项目</a>",
+             f"<a style='color:#dedede' href='{DATA_HOMEPAGE}'>统计来源</a>（非商业使用）"]
     for entry in cloud.community():
         label = escape(entry["name"] + (" " + entry["text"] if entry.get("text") else ""))
         links.append(f"<a href='{escape(entry['url'])}'>{label}</a>" if entry.get("url") else label)
@@ -218,6 +218,7 @@ class MainWindow(QMainWindow):
         self.setWindowTitle(f"{APP_NAME} v{__version__}")
         self.setWindowIcon(app_icon())
         self.resize(1080, 780)
+        self.setPalette(desktop_style.palette())
         self.setStyleSheet(desktop_style.STYLE)
         self.setMinimumSize(360, 260)
 
@@ -228,7 +229,7 @@ class MainWindow(QMainWindow):
         lay.setSpacing(8)
 
         self.tabs = QTabWidget()
-        toolbar = desktop_style.PearlToolbar()
+        toolbar = desktop_style.GlassToolbar()
         head = QHBoxLayout(toolbar)
         head.setContentsMargins(14, 6, 12, 6)
         head.setSpacing(6)
@@ -283,7 +284,7 @@ class MainWindow(QMainWindow):
 
         # 有新版本时才显示
         self.update_bar = _card()
-        self.update_bar.setStyleSheet("QFrame#card{border:1px solid #bea57f;border-radius:6px;background:#fcf8ee}")
+        self.update_bar.setStyleSheet("QFrame#card{border:1px solid #858585;border-radius:6px;background:#242424}")
         ubv = QVBoxLayout(self.update_bar)
         ub = QHBoxLayout()
         ubv.addLayout(ub)
@@ -343,7 +344,7 @@ class MainWindow(QMainWindow):
         hl.addLayout(summary)
         self.cs_label = QLabel()  # 选人界面：待选栏按胜率排序的汇总
         self.cs_label.setTextFormat(Qt.RichText)
-        self.cs_label.setStyleSheet("color:#31483c")
+        self.cs_label.setStyleSheet("color:#d6d6d6")
         self.cs_label.setWordWrap(True)
         self.cs_label.hide()
         hl.addWidget(self.cs_label)
@@ -537,7 +538,7 @@ class MainWindow(QMainWindow):
         hotkey_service = getattr(self.overlay, "hotkey", None)
         self.hotkey_status = QLabel(hotkey_service.status if hotkey_service else "游戏或选英雄在前台时启用。")
         self.hotkey_status.setWordWrap(True)
-        self.hotkey_status.setStyleSheet("color:#52635a")
+        self.hotkey_status.setStyleSheet("color:#b3b3b3")
         if hotkey_service:
             hotkey_service.status_changed.connect(self.hotkey_status.setText)
         # 三选一标签放卡片上方还是下方，右边的示意图跟着选项变
@@ -548,16 +549,16 @@ class MainWindow(QMainWindow):
         self.badge_preview = BadgePosPreview(s.badge_position)
         self.set_badge.currentIndexChanged.connect(
             lambda i: self.badge_preview.set_position(self.set_badge.itemData(i)))
-        self.set_auto = QCheckBox("开机自动启动")
+        self.set_auto = desktop_style.CheckBox("开机自动启动")
         self.set_auto.setChecked(autostart.is_enabled())
-        self.set_data = QCheckBox("从公开 GitHub 更新统计（仅限非商业使用）")
+        self.set_data = desktop_style.CheckBox("从公开 GitHub 更新统计（仅限非商业使用）")
         self.set_data.setChecked(s.check_data_updates)
         self.set_data.setToolTip("默认离线使用内置快照。勾选后访问 czgreat/aramhex-data，按 SHA-256 校验；不会连接原作者网站或发送匿名编号。")
-        self.set_usage = QCheckBox("帮助改善软件（匿名）")
+        self.set_usage = desktop_style.CheckBox("帮助改善软件（匿名）")
         self.set_usage.setChecked(False)
         self.set_usage.setEnabled(False)
         self.set_usage.hide()
-        self.set_winrate = QCheckBox("显示胜率数字")
+        self.set_winrate = desktop_style.CheckBox("显示胜率数字")
         self.set_winrate.setChecked(s.show_winrate)
         self.set_smoothing = QSpinBox()
         self.set_smoothing.setRange(0, 10000)
@@ -635,7 +636,7 @@ class MainWindow(QMainWindow):
         self.about_label = about
         cv.addWidget(about)
         self.about_data = QLabel()
-        self.about_data.setStyleSheet("color:#52635a")
+        self.about_data.setStyleSheet("color:#b3b3b3")
         self.about_data.setWordWrap(True)
         cv.addWidget(self.about_data)
         self.btn_check = QPushButton("检查更新")
@@ -662,7 +663,7 @@ class MainWindow(QMainWindow):
 
     def _show_rank(self, res: dict):
         text = rank.describe(res)
-        self.rank_result.setText(text or "<span style='color:#52635a'>填自己的「名字#编号」，查区内排名，自动选对应分段</span>")
+        self.rank_result.setText(text or "<span style='color:#b3b3b3'>填自己的「名字#编号」，查区内排名，自动选对应分段</span>")
         r = (res or {}).get("results") or []
         if hasattr(self, "my_rank_label"):
             self.my_rank_label.setVisible(bool(r))
@@ -718,7 +719,7 @@ class MainWindow(QMainWindow):
         if silent:
             logging.getLogger(__name__).info("自动查分失败：%s", msg)
             return
-        self.rank_result.setText(f"<span style='color:#9b451f'>{escape(msg)}</span>")
+        self.rank_result.setText(f"<span style='color:#ffb4a6'>{escape(msg)}</span>")
 
     def refresh_rank_if_stale(self):
         """启动时：上次查分超过 7 天就悄悄再查一次（不改你选的分段）。"""
@@ -937,12 +938,12 @@ class MainWindow(QMainWindow):
         try:
             parse_shortcut(text)
         except ValueError as exc:
-            self.hotkey_status.setText(f"<span style='color:#9b451f'>{escape(str(exc))}</span>")
+            self.hotkey_status.setText(f"<span style='color:#ffb4a6'>{escape(str(exc))}</span>")
             return
         hotkey_service = getattr(self.overlay, "hotkey", None)
         error = hotkey_service.validate(text) if hotkey_service else ""
         if error:
-            self.hotkey_status.setText(f"<span style='color:#9b451f'>{escape(error)}</span>")
+            self.hotkey_status.setText(f"<span style='color:#ffb4a6'>{escape(error)}</span>")
             return
         if text == s.overlay_hotkey:
             return
@@ -1096,7 +1097,7 @@ class MainWindow(QMainWindow):
             logging.getLogger(__name__).info("有新版本 %s，分批推送还没轮到本机，先不提示", info["version"])
             return
         self._update_info = info
-        notes = f"<br><span style='color:#52635a'>{escape(info['notes'][:200])}</span>" if info.get("notes") else ""
+        notes = f"<br><span style='color:#b3b3b3'>{escape(info['notes'][:200])}</span>" if info.get("notes") else ""
         # 打包后的程序都能先试增量更新；源码运行时只有带安装包地址的才能直接装
         direct = patch.install_root() is not None or (bool(info.get("url")) and not is_portable())
         self.update_text.setText(f"<b>有新版本 {info['version']}</b>（当前 {__version__}）{notes}")
@@ -1201,6 +1202,8 @@ class MainWindow(QMainWindow):
             return
         comp, self._names = hero_completer(self.engine.store, self)
         comp.activated.connect(lambda text: (self.engine.set_hero(self._names.get(text, text)), self.search.clear()))
+        comp.popup().setPalette(self.palette())
+        comp.popup().setStyleSheet(desktop_style.STYLE)
         self.search.setCompleter(comp)
 
     def _show_hero_choices(self, data, show):
@@ -1266,7 +1269,7 @@ class MainWindow(QMainWindow):
         self.status.setText(
             f"{PHASE_CN.get(snap.get('phase'), snap.get('phase'))}　·　"
             f"识别{VISION_CN.get(v.get('status'), v.get('status'))}"
-            f"{' · <span style=\"color:#9b451f\">游戏可能是全屏模式，无法识别。请在游戏内设置-窗口模式中选择无边框/窗口。</span>' if v.get('blank') else ''}　│　"
+            f"{' · <span style=\"color:#ffb4a6\">游戏可能是全屏模式，无法识别。请在游戏内设置-窗口模式中选择无边框/窗口。</span>' if v.get('blank') else ''}　│　"
             f"{BANDS.get(dd.get('band_effective'), '全体')} · {data_status_html(dd)}")
         if hasattr(self, "about_data"):
             self.about_data.setText(statistics_settings_text(
@@ -1300,12 +1303,12 @@ class MainWindow(QMainWindow):
             if r.get("games"):
                 details.append(f"{r['games']:,} 场")
             self.hero_label.setText(f"<b style='font-size:24px'>{name}</b>　{nick}"
-                                    f"<br><span style='color:#52635a'>{'　·　'.join(details)}</span>")
+                                    f"<br><span style='color:#b3b3b3'>{'　·　'.join(details)}</span>")
         else:
             self._portrait_key = None
             self.hero_portrait.setPixmap(app_icon().pixmap(52, 52))
             self.hero_label.setText("<b style='font-size:20px'>选择英雄</b><br>"
-                                    "<span style='color:#52635a'>未识别到英雄，可搜索名字</span>")
+                                    "<span style='color:#b3b3b3'>未识别到英雄，可搜索名字</span>")
         cs = snap.get("champ_select")
         if cs and (cs.get("bench") or cs.get("cards")):
             from .overlay import champ_select_summary
@@ -1324,7 +1327,7 @@ class MainWindow(QMainWindow):
             self.tab_hero.setText(self._hero_html(d, show_win))
         elif not d:
             self._panel_hero = None
-            self.tab_hero.setText("<span style='color:#52635a'>还没有选英雄。点击头像或搜索名字查看出装与加点。</span>")
+            self.tab_hero.setText("<span style='color:#b3b3b3'>还没有选英雄。点击头像或搜索名字查看出装与加点。</span>")
         self._render_offer(snap.get("evaluation"), show_win,
                            (snap.get("offer") or {}).get("pending_columns"))
 
@@ -1354,18 +1357,18 @@ class MainWindow(QMainWindow):
                 continue
             row = slots[i]
             if pending and row["index"] < len(pending) and pending[row["index"]]:
-                lab.setText("<span style='color:#52635a'>识别中…</span>")
+                lab.setText("<span style='color:#b3b3b3'>识别中…</span>")
                 lab.setToolTip("")
                 continue
             lab.setText(offer_html(row, show_win))
             lab.setToolTip("\n".join(row.get("reasons") or []) if show_win else "")
         if not ev:
-            self.offer_advice.setText("<span style='color:#52635a'>未在选海克斯</span>")
+            self.offer_advice.setText("<span style='color:#b3b3b3'>未在选海克斯</span>")
             return
         advice = "卡片更新中，等待识别确认" if waiting else ev["advice"]
         pk = recommend.pentakill_text(ev.get("pentakill"), show_win=show_win) if not waiting else ""
-        self.offer_advice.setText(f"<b style='font-size:20px;color:#263730'>{escape(advice)}</b>"
-                                  + (f"<br><span style='color:#52635a'>{escape(pk)}</span>" if pk else ""))
+        self.offer_advice.setText(f"<b style='font-size:20px;color:#e7e7e7'>{escape(advice)}</b>"
+                                  + (f"<br><span style='color:#b3b3b3'>{escape(pk)}</span>" if pk else ""))
 
     # ---------- 窗口行为 ----------
 
@@ -1401,6 +1404,8 @@ class Tray(QSystemTrayIcon):
         self.engine, self.window, self.overlay = engine, window, overlay
         self.setToolTip(f"DD HEX 海克斯助手 v{__version__}")
         m = QMenu()
+        m.setPalette(desktop_style.palette())
+        m.setStyleSheet(desktop_style.STYLE)
         m.addAction("打开主界面", window.show_and_raise)
         self.act_overlay = QAction("显示游戏浮窗", m, checkable=True)
         self.act_overlay.setChecked(engine.settings.overlay)
