@@ -684,7 +684,7 @@ class ControlPanel(QWidget):
         QScrollBar::add-page:vertical,QScrollBar::sub-page:vertical {background:transparent;}
     """
     BTN_STYLE = ("QPushButton{background:transparent;border:1px solid transparent;border-radius:%dpx}"
-                 "QPushButton:hover{background:rgba(42,60,54,235);border-color:#819b8d}")
+                 "QPushButton:hover{background:rgba(52,52,52,235);border-color:#888}")
 
     def __init__(self, engine, corner: str = "top-right"):
         super().__init__()
