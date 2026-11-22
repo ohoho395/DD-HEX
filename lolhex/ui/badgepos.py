@@ -21,7 +21,7 @@ class BadgePosPreview(QWidget):
 
     def paintEvent(self, _):
         # Load lazily: settings imports this widget before overlay startup.
-        from .overlay import TAG_BORDER, TAG_EMPHASIS, TAG_MUTED, TAG_SURFACE, TAG_TEXT
+        from .overlay import TAG_BEST_SURFACE, TAG_BORDER, TAG_EMPHASIS, TAG_HIGHLIGHT, TAG_MUTED, TAG_TEXT
 
         p = QPainter(self)
         p.setRenderHint(QPainter.Antialiasing)
@@ -39,9 +39,10 @@ class BadgePosPreview(QWidget):
         for i, w in enumerate((76, 70, 56)):             # 描述
             p.drawRect(QRectF(56 - w / 2, 80 + 8 * i, w, 3))
         box = QRectF(20, 40, 72, 22) if self.position != "bottom" else QRectF(20, 110, 72, 22)
-        p.setBrush(TAG_SURFACE)
+        p.setBrush(TAG_BEST_SURFACE)
         p.setPen(QPen(TAG_BORDER, 1))
         p.drawRoundedRect(box, 4, 4)
+        p.fillRect(box.adjusted(2, 2, -2, -box.height() / 2), TAG_HIGHLIGHT)
         p.setPen(Qt.NoPen)
         p.setBrush(TAG_EMPHASIS)
         p.drawRoundedRect(QRectF(box.left()+3, box.top()+5, 2, 12), 1, 1)

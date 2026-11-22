@@ -4,9 +4,9 @@ from html import escape
 from ..panel import split_augment_samples
 from . import buildview
 
-INK = "#e9e9e9"
-MUTED = "#b7b7b7"
-ACCENT = "#f5f5f5"
+INK = "#d6d6d6"
+MUTED = "#adadad"
+ACCENT = "#f7f7f7"
 
 
 def _text(value, color=INK, size=13, bold=False):
@@ -42,7 +42,7 @@ def _loadout(d, icons, show_win):
     parts = []
 
     def rate(row):
-        return _text(_pct(row["win"]), ACCENT, bold=True) if show_win and row.get("win") is not None else ""
+        return _text(_pct(row["win"]), ACCENT, size=14, bold=True) if show_win and row.get("win") is not None else ""
 
     rows = []
     for i, route in enumerate((builds.get("core") or [])[:3], 1):

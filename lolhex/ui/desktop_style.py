@@ -1,4 +1,4 @@
-"""Visuals scoped to the desktop window; game overlays use their own palette."""
+"""Desktop surfaces and the smoked-glass header shared with game details."""
 import base64
 import json
 from functools import lru_cache
@@ -23,6 +23,30 @@ def portrait(alias):
         image.loadFromData(base64.b64decode(data))
     return image
 
+def portrait_strip(source):
+    """Blend a bundled portrait into the identity band; render only on hero changes."""
+    if source.isNull():
+        return QPixmap()
+    result = QPixmap(216, 148)
+    result.fill(Qt.transparent)
+    with QPainter(result) as painter:
+        painter.setRenderHint(QPainter.Antialiasing)
+        painter.setRenderHint(QPainter.SmoothPixmapTransform)
+        clip = QPainterPath()
+        clip.addRoundedRect(QRectF(result.rect()), 14, 14)
+        painter.setClipPath(clip)
+        enlarged = source.scaled(result.size(), Qt.KeepAspectRatioByExpanding, Qt.SmoothTransformation)
+        painter.drawPixmap(0, (result.height() - enlarged.height()) // 2, enlarged)
+        fade = QLinearGradient(0, 0, result.width(), 0)
+        fade.setColorAt(0, QColor(0, 0, 0, 255))
+        fade.setColorAt(.61, QColor(0, 0, 0, 255))
+        fade.setColorAt(1, QColor(0, 0, 0, 0))
+        painter.setCompositionMode(QPainter.CompositionMode_DestinationIn)
+        painter.fillRect(result.rect(), fade)
+    result.setDevicePixelRatio(2)
+    return result
+
+
 class GlassToolbar(QFrame):
     """A static graphite-glass surface for desktop navigation; no backdrop sampling."""
     def __init__(self, parent=None):
@@ -34,10 +58,10 @@ class GlassToolbar(QFrame):
         path = QPainterPath()
         path.addRoundedRect(face, 14, 14)
         tint = QLinearGradient(face.topLeft(), face.bottomRight())
-        tint.setColorAt(0, QColor("#3c3c3c"))
-        tint.setColorAt(.39, QColor("#252525"))
-        tint.setColorAt(.68, QColor("#212121"))
-        tint.setColorAt(1, QColor("#353535"))
+        tint.setColorAt(0, QColor("#545454"))
+        tint.setColorAt(.39, QColor("#303030"))
+        tint.setColorAt(.68, QColor("#222222"))
+        tint.setColorAt(1, QColor("#3e3e3e"))
 
         sheen = QLinearGradient(0, face.top(), 0, face.bottom())
         sheen.setColorAt(0, QColor(255, 255, 255, 22))
@@ -60,11 +84,11 @@ class GlassToolbar(QFrame):
             painter.fillPath(path, tint)
             painter.save()
             painter.setClipPath(path)
-            painter.fillPath(reflection, QColor(255, 255, 255, 12))
+            painter.fillPath(reflection, QColor(255, 255, 255, 18))
             painter.fillRect(face, sheen)
             painter.restore()
             edge = QLinearGradient(0, face.top(), 0, face.bottom())
-            edge.setColorAt(0, QColor(255, 255, 255, 112))
+            edge.setColorAt(0, QColor(255, 255, 255, 145))
             edge.setColorAt(.55, QColor(255, 255, 255, 26))
             edge.setColorAt(1, QColor(175, 175, 175, 65))
             painter.setBrush(Qt.NoBrush)
@@ -121,15 +145,16 @@ def apply_app_palette(app):
 
 
 STYLE = """
-QMainWindow, QWidget#desktop, QWidget#page, QWidget#settingsForm, QScrollArea, QMessageBox {
-    background: #111111; color: #e7e7e7;
-}
-QLabel {color: #e7e7e7; background: transparent;}
-QFrame#heroBand {background: #111111; border: none; border-bottom: 1px solid #363636;}
-QLabel#heroText, QLabel#heroMetric {color: #f1f1f1;}
-QFrame#card {background: #1b1b1b; border: 1px solid #404040; border-radius: 6px;}
-QFrame#card[recommended="yes"] {background: #272727; border: 2px solid #c7c7c7;}
-QFrame#settingGroup {background: #202020; border: 1px solid #3f3f3f; border-radius: 6px;}
+QMainWindow, QWidget#desktop, QScrollArea, QMessageBox {background:#101010; color:#ebebeb;}
+QWidget#page, QWidget#settingsForm {background:#232323; color:#ebebeb;}
+QLabel {color:#ebebeb; background:transparent;}
+QFrame#heroBand {background:qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 #494949,stop:.45 #292929,stop:.72 #303030,stop:1 #434343);
+    border:1px solid #404040; border-top-color:#646464; border-bottom-color:#242424; border-radius:8px;}
+QLabel#heroText, QLabel#heroMetric {color:#fafafa;}
+QLabel#heroMetric {padding-left:14px; padding-right:14px; border-left:1px solid #656565;}
+QFrame#card {background:#303030; border:1px solid #494949; border-top-color:#5b5b5b; border-radius:6px;}
+QFrame#card[recommended="yes"] {background:#3e3e3e; border:2px solid #d2d2d2;}
+QFrame#settingGroup {background:#303030; border:1px solid #474747; border-top-color:#595959; border-radius:6px;}
 QLabel#toolbarBrand {font-size: 20px; font-weight: 700; color: #f4f4f4;}
 QLabel#sectionName {color: #e7e7e7; font-size: 17px; font-weight: 650; padding-bottom: 4px;}
 
@@ -180,7 +205,7 @@ QCheckBox::indicator:checked {background: #e0e0e0; border-color: #e0e0e0;}
 QCheckBox::indicator:focus, QCheckBox::indicator:hover {border-color: #f5f5f5;}
 QCheckBox::indicator:disabled {border-color: #505050; background: #202020;}
 QCheckBox::indicator:checked:disabled {background: #858585;}
-QTabWidget::pane {background: #111111; border: none;}
+QTabWidget::pane {background:#232323; border:1px solid #373737; border-top-color:#484848; border-radius:6px;}
 QTabBar::tab {background: transparent; color: #b3b3b3; padding: 6px 12px; border-bottom: 2px solid transparent;}
 QTabBar::tab:selected {color: #f2f2f2; border-bottom: 2px solid #d2d2d2;}
 QProgressBar {background: #161616; border: 1px solid #575757; border-radius: 3px; color: #fafafa; text-align: center;}

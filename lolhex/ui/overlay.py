@@ -17,7 +17,7 @@ import time
 from html import escape
 
 from PySide6.QtCore import QEvent, QPoint, QRect, QRectF, QSize, Qt, QTimer
-from PySide6.QtGui import QColor, QCursor, QFont, QFontMetrics, QGuiApplication, QPainter, QPen, QPixmap, QRegion
+from PySide6.QtGui import QColor, QCursor, QFont, QFontMetrics, QGuiApplication, QPainter, QPainterPath, QPen, QPixmap, QRegion
 from PySide6.QtWidgets import (QApplication, QButtonGroup, QFrame, QHBoxLayout, QLabel, QLineEdit, QPushButton, QScrollArea,
                                QVBoxLayout, QWidget)
 
@@ -38,9 +38,10 @@ log = logging.getLogger(__name__)
 RARITY_CN = {"silver": "白银", "gold": "黄金", "prismatic": "棱彩"}
 # Annotation chrome stays neutral; game rarity labels and original item icons
 # carry their own semantics. Verdict words, ranks and +/- values remain explicit.
-TAG_SURFACE = QColor(22, 22, 22, 232)
-TAG_BEST_SURFACE = QColor(29, 29, 29, 246)
-TAG_BORDER = QColor(104, 104, 104, 120)
+TAG_SURFACE = QColor(22, 22, 22, 236)
+TAG_BEST_SURFACE = QColor(43, 43, 43, 246)
+TAG_HIGHLIGHT = QColor(255, 255, 255, 18)
+TAG_BORDER = QColor(104, 104, 104, 150)
 TAG_TEXT = QColor(238, 238, 238)
 TAG_MUTED = QColor(184, 184, 184)
 TAG_EMPHASIS = QColor(240, 240, 240)
@@ -397,6 +398,14 @@ class BadgeLayer(_Layer):
             p.setBrush(TAG_BEST_SURFACE if best else TAG_SURFACE)
             p.drawRoundedRect(rect.adjusted(1, 1, -1, -1), 7, 7)
             if best:
+                p.save()
+                face = QPainterPath()
+                face.addRoundedRect(QRectF(rect.adjusted(2, 2, -2, -2)), 6, 6)
+                p.setClipPath(face)
+                p.fillRect(QRect(rect.x() + 2, rect.y() + 2, rect.width() - 4, 26), TAG_HIGHLIGHT)
+                p.setPen(QPen(QColor(200, 200, 200, 80), 1))
+                p.drawLine(rect.x() + 9, rect.y() + 2, rect.right() - 9, rect.y() + 2)
+                p.restore()
                 p.setPen(Qt.NoPen)
                 p.setBrush(color)
                 p.drawRoundedRect(QRectF(rect.x() + 4, rect.y() + 8, 3, rect.height() - 16), 1.5, 1.5)
@@ -406,7 +415,7 @@ class BadgeLayer(_Layer):
             p.drawText(head, Qt.AlignLeft | Qt.AlignVCenter, label)
             p.setFont(detail_font)
             if lines[0]:
-                p.setPen(TAG_TEXT)
+                p.setPen(TAG_EMPHASIS)
                 p.drawText(head, Qt.AlignRight | Qt.AlignVCenter, lines[0])
             p.setPen(TAG_MUTED)
             for index, detail in enumerate(lines[1:]):
@@ -604,7 +613,7 @@ class ChampSelectLayer(_Layer):
                     color = win_color(win)
                     r = QRect(int(x1 + pw * 1.9), int((y0 + y1) / 2 - px * 1.5), int(pw * 1.2), int(px * 3.0))
                 p.setPen(Qt.NoPen)
-                p.setBrush(TAG_SURFACE)
+                p.setBrush(TAG_BEST_SURFACE if s is best or s is best_card else TAG_SURFACE)
                 p.drawRoundedRect(r, 4, 4)
                 drawn.append(r)
                 if s is best or s is best_card:
@@ -672,18 +681,21 @@ class ControlPanel(QWidget):
     现在图标窗口大小、位置都不因展开收起而变，详情窗口贴在图标下面单独显示、隐藏。"""
 
     STYLE_BODY = """
-        QWidget#body {background:rgba(23,23,23,250);border:1px solid #515151;border-radius:11px;}
-        QLabel {color:#e9e9e9;background:transparent;font:13px 'Microsoft YaHei UI';}
-        QLabel#headerIdentity,QLabel#headerMetric {color:#f5f5f5;}
+        QWidget#body {background:rgba(13,13,13,252);border:1px solid #4c4c4c;border-radius:11px;}
+        QLabel {color:#d5d5d5;background:transparent;font:13px 'Microsoft YaHei UI';}
+        QLabel#headerIdentity {color:#ededed;}
+        QLabel#headerMetric {color:#ffffff;}
         QPushButton {background:transparent;color:#c8c8c8;border:1px solid transparent;border-radius:4px;padding:3px 6px;}
         QPushButton:hover {background:#343434;color:#fff;}
         QPushButton:focus,QLineEdit:focus {border-color:#bcbcbc;}
-        QPushButton#pageTab {font-weight:600;color:#ababab;padding:4px 9px;border-radius:0;border-bottom:2px solid transparent;}
-        QPushButton#pageTab:checked {color:#f4f4f4;border-bottom:2px solid #d5d5d5;}
-        QLabel#source {font-size:11px;color:#b0b0b0;}
-        QFrame#footer {border:none;border-top:1px solid #424242;}
+        QPushButton#pageTab {font-weight:600;color:#ababab;padding:4px 9px;border-radius:4px;border-bottom:2px solid transparent;}
+        QPushButton#pageTab:checked {background:#414141;color:#ffffff;border:1px solid #707070;border-bottom:2px solid #cccccc;}
+        QLabel#source {font-size:11px;color:#a0a0a0;}
+        QFrame#footer {border:none;border-top:1px solid #373737;}
         QLineEdit {background:#101010;color:#ededed;border:1px solid #626262;border-radius:4px;padding:4px 6px;}
         QScrollArea {border:none;background:transparent;}
+        QScrollArea#detailPanel {background:#292929;border:1px solid #484848;border-radius:4px;}
+        QWidget#detailViewport {background:#292929;}
         QScrollBar:vertical {background:transparent;width:7px;}
         QScrollBar::handle:vertical {background:#656565;border-radius:3px;min-height:18px;}
         QScrollBar::add-line:vertical,QScrollBar::sub-line:vertical {height:0;}
@@ -781,6 +793,7 @@ class ControlPanel(QWidget):
         self.search_feedback.setStyleSheet("color:#ececec;font-weight:600")
         self.search_feedback.hide()
         self.info = QLabel()
+        self.info.setMargin(6)
         self.info.setTextFormat(Qt.RichText)
         self.info.setWordWrap(True)
         self.info.setOpenExternalLinks(False)
@@ -818,11 +831,14 @@ class ControlPanel(QWidget):
         bl.addLayout(tabs)
         self.info.setAlignment(Qt.AlignLeft | Qt.AlignTop)
         self.info_scroll = QScrollArea()
+        self.info_scroll.setObjectName("detailPanel")
         self.info_scroll.setFrameShape(QFrame.NoFrame)
         self.info_scroll.setFocusPolicy(Qt.NoFocus)
         self.info_scroll.setWidgetResizable(True)
         self.info_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.info_scroll.setWidget(self.info)
+        self.info_scroll.viewport().setObjectName("detailViewport")
+        self.info_scroll.viewport().setAttribute(Qt.WA_StyledBackground)
         self.info_scroll.viewport().setAutoFillBackground(False)
         self.info.setAutoFillBackground(False)
         bl.addWidget(self.info_scroll)
@@ -1254,7 +1270,7 @@ class ControlPanel(QWidget):
                 rating.append(f"出场 {_pct(r['pick'])}")
             hero_html = (f"<b style='font-size:18px'>{escape(h['name'])}</b>　{escape(h['nick'])}<br>"
                          f"<span style='font-size:11px;color:#c7c7c7'>{' · '.join(rating)}</span>")
-            metric = (f"<b style='font-size:19px'>{_pct(r['win'])}</b><br>英雄胜率"
+            metric = (f"<b style='font-size:20px;color:#ffffff'>{_pct(r['win'])}</b><br>英雄胜率"
                       if show_win and r.get("win") is not None else "")
             alias = h.get("alias") or ""
         else:

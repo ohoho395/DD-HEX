@@ -6,9 +6,12 @@ from ..panel import split_augment_samples
 from ..data.tencent import RARITY_CN
 
 
-INK = "#e7e7e7"
-MUTED = "#b3b3b3"
-ACCENT = "#f2f2f2"
+INK = "#ededed"
+MUTED = "#b6b6b6"
+ACCENT = "#ffffff"
+SHEET = "#232323"
+HEADER = "#333333"
+LEADING = "#2b2b2b"
 
 
 def _text(value, *, size=14, color=INK, bold=False):
@@ -22,26 +25,28 @@ def _pct(value):
 
 def _heading(name, scope=""):
     return ("<table width='100%' cellspacing='0' cellpadding='0'><tr>"
-            "<td style='padding:14px 0 8px'>" + _text(name, size=19, bold=True) + "</td>"
+            "<td style='padding:14px 0 8px'>" + _text(name, size=19, color=ACCENT, bold=True) + "</td>"
             "<td align='right' valign='middle' style='padding:14px 0 8px'>"
             + _text(scope, size=12, color=MUTED) + "</td></tr></table>")
 
 
-def _table(headings, rows, numeric=(), *, compact=False):
+def _table(headings, rows, numeric=(), *, compact=False, emphasize_first=False):
     pad = 4 if compact else 7
 
-    def row(cells, header=False):
+    def row(cells, fill, header=False):
         out = []
+        rule = "#545454" if header else "#373737"
         for i, cell in enumerate(cells):
-            fill = " bgcolor='#272727'" if header else ""
             align = "right" if i in numeric else "left"
-            content = _text(cell, size=12, color=MUTED, bold=True) if header else cell
-            out.append(f"<td valign='middle' align='{align}'{fill} "
-                       f"style='border-bottom:1px solid #393939'>{content}</td>")
+            content = _text(cell, size=12, color="#d2d2d2", bold=True) if header else cell
+            out.append(f"<td valign='middle' align='{align}' bgcolor='{fill}' "
+                       f"style='border-bottom:1px solid {rule}'>{content}</td>")
         return "<tr>" + "".join(out) + "</tr>"
 
     return (f"<table width='100%' cellspacing='0' cellpadding='{pad}' style='border-collapse:collapse'>"
-            + row(headings, header=True) + "".join(row(cells) for cells in rows) + "</table>")
+            + row(headings, HEADER, header=True)
+            + "".join(row(cells, LEADING if i == 0 and emphasize_first else SHEET)
+                      for i, cells in enumerate(rows)) + "</table>")
 
 
 def _icon(icons, asset, kind, size):
@@ -63,21 +68,25 @@ def _core_routes(d, icons, show_win, compact):
     columns = ["路线", *(["第一件", "第二件", "第三件"] if ordered else ["装备一", "装备二", "装备三"]), "出场率"]
     if show_win:
         columns.append("胜率")
+    rates = [b.get("win") for b in builds]
+    sorted_rates = show_win and all(v is not None for v in rates) and rates == sorted(rates, reverse=True)
+    # A tied displayed percentage should not give one route extra emphasis.
+    first_leads = sorted_rates and len(rates) > 1 and _pct(rates[0]) != _pct(rates[1])
     rows = []
     for i, b in enumerate(builds, 1):
         note = "（无固定顺序）" if not ordered and b.get("ordered") is not True else ""
-        cells = [_text(f"方案 {i}{note}", color=MUTED, size=13)]
+        lead = i == 1 and first_leads
+        cells = [_text(f"方案 {i}{note}", color=ACCENT if lead else MUTED, size=13, bold=lead)]
         entries = b.get("items") or []
         cells.extend(_named_item(icons, entries[j], 22 if compact else 28) if j < len(entries) else _text("—")
                      for j in range(3))
-        cells.append(_text(_pct(b.get("pick"))))
+        cells.append(_text(_pct(b.get("pick")), color=MUTED))
         if show_win:
-            cells.append(_text(_pct(b.get("win")), color=ACCENT, bold=True))
+            cells.append(_text(_pct(b.get("win")), size=16 if lead else 14, color=ACCENT if lead else INK, bold=lead))
         rows.append(cells)
-    rates = [b.get("win") for b in builds]
-    sort_note = "按胜率降序" if show_win and all(v is not None for v in rates) and rates == sorted(rates, reverse=True) else ""
+    sort_note = "按胜率降序" if sorted_rates else ""
     sub = " · ".join(s for s in (d.get("core_band"), sort_note) if s)
-    return _heading("核心三件", sub) + _table(columns, rows, numeric=(4, 5), compact=compact)
+    return _heading("核心三件", sub) + _table(columns, rows, numeric=(4, 5), compact=compact, emphasize_first=first_leads)
 
 
 def _augment_ranking(d, reliable_games, compact):
@@ -94,8 +103,9 @@ def _augment_ranking(d, reliable_games, compact):
             games = a.get("evidence_games") or a.get("games") or 0
             amount = f"{games:,} 局" if scope else f"{a.get('evidence_scope') or '全段位'} {games:,} 局"
             rarity = " · ".join(s for s in (RARITY_CN.get(a.get("rarity")), a.get("tier")) if s)
-            data.append([_text(a["name"]), _text(rarity, size=13, color=MUTED), _text(amount),
-                         _text(f"{a['delta']:+.1f}", color=ACCENT, bold=True)])
+            data.append([_text(a["name"]), _text(rarity, size=13, color=MUTED), _text(amount, color=MUTED),
+                         _text(f"{a['delta']:+.1f}", color=ACCENT if label == "推荐海克斯" else MUTED,
+                               bold=label == "推荐海克斯")])
         limit = ("首选样本门槛" if label == "推荐海克斯" else "不足首选门槛") + f" {reliable_games:,} 局"
         groups.append(_heading(label, limit) + _table(columns, data, numeric=(2, 3), compact=compact))
     return "".join(groups)
@@ -112,7 +122,7 @@ def _spells_and_skills(d, icons, show_win, compact):
             pair = row.get("spells") or []
             images = " ".join(_icon(icons, spell, "spell", 22) for spell in pair).strip()
             names = " + ".join(s.get("name") or str(s.get("id") or "") for s in pair)
-            cells = [(images + "　" if images else "") + _text(names), _text(_pct(row.get("pick")))]
+            cells = [(images + "　" if images else "") + _text(names), _text(_pct(row.get("pick")), color=MUTED)]
             if show_win:
                 cells.append(_text(_pct(row.get("win")), color=ACCENT))
             rows.append(cells)
@@ -167,16 +177,25 @@ def offer_html(row, show_win):
              "nodata": "无数据"}.get(verdict, "未识别")
     if verdict == "best" and row.get("sample_warning"):
         label = "相对较好，仅供参考"
-    tone = ACCENT if verdict == "best" and not row.get("sample_warning") else MUTED
-    lines = [_text(label, size=12, bold=True, color=tone),
-             _text(row.get("name") or "未识别", size=20, bold=True)]
+    leading = verdict == "best" and not row.get("sample_warning")
     tier = " · ".join(s for s in (RARITY_CN.get(row.get("rarity")), row.get("tier")) if s)
+    heading = _text(label, size=13, bold=leading, color=ACCENT if leading else MUTED)
     if tier:
-        lines.append(_text(tier, size=12, color=MUTED))
+        heading += "　" + _text(tier, size=12, color=MUTED)
+    title = _text(row.get("name") or "未识别", size=21, bold=True, color=ACCENT if leading else INK)
+    sections = ["<p style='margin:0 0 8px'>" + heading + "</p>",
+                "<p style='margin:0 0 12px'>" + title + "</p>"]
     if show_win:
         rate = recommend.win_text(row)
+        if rate.startswith("胜率"):
+            rate_html = (_text(rate[2:], size=26 if leading else 21, color=ACCENT, bold=True)
+                         + "　" + _text("胜率", size=12, color=MUTED))
+        else:
+            # Global/PBE fallbacks include their scope and counts in the rate text.
+            rate_html = _text(rate, size=15, color=INK)
         if rate:
-            lines.append(_text(rate, size=16, bold=True))
+            sections.append("<p style='margin:0 0 6px'>" + rate_html + "</p>")
+    lines = []
     if row.get("basis") == "hero_win" and row.get("score") is not None:
         lines.append(_text(f"较基准 {row['score']:+.1f}", color=MUTED))
     if row.get("games") is not None:
@@ -198,4 +217,6 @@ def offer_html(row, show_win):
         lines.append(_text("按官方评级估计", color=MUTED))
     elif row.get("basis") == "rare":
         lines.append(_text("本英雄样本不足", color=MUTED))
-    return "<br>".join(lines)
+    if lines:
+        sections.append("<p style='margin:0'>" + "<br>".join(lines) + "</p>")
+    return "".join(sections)

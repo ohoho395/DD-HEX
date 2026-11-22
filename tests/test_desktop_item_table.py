@@ -26,3 +26,18 @@ def test_unordered_or_missing_rows_do_not_imply_order_or_zero_rates():
     html = hero_html({"builds": {"core": [row]}}, None, True)
     assert "无固定顺序" in html and "第一件" not in html
     assert "0.0%" not in html and "按胜率降序" not in html
+
+
+def test_visual_lead_requires_distinguishable_observed_rates():
+    from lolhex.ui.desktop_content import LEADING
+
+    def highlighted(rates, show=True):
+        rows = [{"items": [], "win": rate, "ordered": True} for rate in rates]
+        html = hero_html({"builds": {"core": rows}}, None, show)
+        return f"bgcolor='{LEADING}'" in html
+
+    assert highlighted([.54, .51, .50])
+    assert not highlighted([.54002, .54001, .50])  # Both display 54.0%.
+    assert not highlighted([.51, .54, .50])  # Keep the data publisher's order.
+    assert not highlighted([.54, None]) and not highlighted([.54])
+    assert not highlighted([.54, .51], show=False)

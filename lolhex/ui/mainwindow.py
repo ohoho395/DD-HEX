@@ -226,7 +226,7 @@ class MainWindow(QMainWindow):
         root.setObjectName("desktop")
         lay = QVBoxLayout(root)
         lay.setContentsMargins(18, 12, 18, 10)
-        lay.setSpacing(8)
+        lay.setSpacing(10)
 
         self.tabs = QTabWidget()
         toolbar = desktop_style.GlassToolbar()
@@ -328,16 +328,18 @@ class MainWindow(QMainWindow):
         hc = QFrame()
         hc.setObjectName("heroBand")
         hl = QVBoxLayout(hc)
-        hl.setContentsMargins(15, 11, 15, 11)
+        hl.setContentsMargins(6, 6, 15, 6)
         summary = QHBoxLayout()
         summary.setSpacing(12)
         self.hero_portrait = QLabel()
-        self.hero_portrait.setFixedSize(52, 52)
-        self.hero_portrait.setScaledContents(True)
+        self.hero_portrait.setFixedSize(108, 74)
+        self.hero_portrait.setAlignment(Qt.AlignCenter)
+        self.hero_portrait.setScaledContents(False)
         self._portrait_key = None
         summary.addWidget(self.hero_portrait)
         self.hero_label = QLabel()
         self.hero_label.setObjectName("heroText")
+        self.hero_label.setWordWrap(True)
         self.hero_label.setTextFormat(Qt.RichText)
         summary.addWidget(self.hero_label, 1)
 
@@ -350,6 +352,11 @@ class MainWindow(QMainWindow):
         hl.addWidget(self.cs_label)
         self.cands = QHBoxLayout()
         hl.addLayout(self.cands)
+        self.hero_rate = QLabel()
+        self.hero_rate.setObjectName("heroMetric")
+        self.hero_rate.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        self.hero_rate.hide()
+        summary.addWidget(self.hero_rate)
         summary.addWidget(QLabel("参考分段"))
         self.band_box = QComboBox()
         self.band_box.setAccessibleName("参考分段")
@@ -431,6 +438,7 @@ class MainWindow(QMainWindow):
         self.tabs.tabBar().hide()
         self.tabs.currentChanged.connect(lambda page: self.hero_portrait.setVisible(page != 2))
         self.tabs.currentChanged.connect(lambda page: self.hero_label.setVisible(page != 2))
+        self.tabs.currentChanged.connect(lambda page: self.hero_rate.setVisible(page != 2 and bool(self.hero_rate.text())))
         settings_title = QLabel("设置")
         settings_title.setObjectName("sectionName")
         summary.insertWidget(2, settings_title, 1)
@@ -1290,12 +1298,16 @@ class MainWindow(QMainWindow):
             if key != self._portrait_key:
                 self._portrait_key = key
                 portrait = desktop_style.portrait(key)
-                self.hero_portrait.setPixmap(portrait if not portrait.isNull() else app_icon().pixmap(66, 66))
+                pixmap = desktop_style.portrait_strip(portrait) if not portrait.isNull() else app_icon().pixmap(52, 52)
+                self.hero_portrait.setPixmap(pixmap)
             name = escape(str(h.get("name") or ""))
             nick = escape(str(h.get("nick") or ""))
             details = []
-            if show_win and r.get("win") is not None:
-                details.append(f"英雄胜率 <b>{_pct(r['win'])}</b>")
+            rate = (f"<span style='font-size:11px;color:#cecece'>英雄胜率</span><br>"
+                    f"<b style='font-size:32px'>{_pct(r['win'])}</b>"
+                    if show_win and r.get("win") is not None else "")
+            self.hero_rate.setText(rate)
+            self.hero_rate.setVisible(bool(rate) and self.tabs.currentIndex() != 2)
             if b.get("rank"):
                 details.append(f"排名 {b['rank']} / {b.get('total') or '?'}")
             if r.get("pick") is not None:
@@ -1306,6 +1318,8 @@ class MainWindow(QMainWindow):
                                     f"<br><span style='color:#b3b3b3'>{'　·　'.join(details)}</span>")
         else:
             self._portrait_key = None
+            self.hero_rate.clear()
+            self.hero_rate.hide()
             self.hero_portrait.setPixmap(app_icon().pixmap(52, 52))
             self.hero_label.setText("<b style='font-size:20px'>选择英雄</b><br>"
                                     "<span style='color:#b3b3b3'>未识别到英雄，可搜索名字</span>")
